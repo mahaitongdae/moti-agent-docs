@@ -64,15 +64,14 @@ npm run test:db:up            # throwaway Postgres; data is lost when it stops, 
 cp .env.example .env
 ```
 
-In `.env`, set the agent settings from step 4 of [Microsoft Teams setup](microsoft-teams.md), plus:
+Create `config/agent.private.yaml` and `.env` as in step 4 of [Microsoft Teams setup](microsoft-teams.md). For debugging, add `logLevel: debug` to the private file, and to `.env`:
 
 ```
 DATABASE_URL=postgres://postgres:test@localhost:55432/postgres
 DATA_DIR=./data
-LOG_LEVEL=debug
 ```
 
-`PUBLIC_HOSTNAME` and `POSTGRES_PASSWORD` are only used by Docker Compose and can be left as they are. Then start:
+Set `PUBLIC_HOSTNAME` to the tunnel host (without `https://`); the Threads tab sign-in needs it. `POSTGRES_PASSWORD` is only used by Docker Compose. Then start:
 
 ```bash
 node --env-file=.env apps/teams-bot/src/main.ts
@@ -81,7 +80,7 @@ node --env-file=.env apps/teams-bot/src/main.ts
 ## 4. Package and upload the Teams app
 
 ```bash
-CLIENT_ID=<CLIENT_ID> PUBLIC_HOSTNAME=<tunnel host, without https://> COMPANY_NAME="Your company" \
+PUBLIC_HOSTNAME=<tunnel host, without https://> \
   infra/teams-app/package.sh moti-agent.zip
 ```
 
@@ -93,6 +92,7 @@ Teams client → Apps → Manage your apps → **Upload a custom app**, then cho
 2. In the 1:1 chat, ask `Which teams am I in?`. The first time, Teams signs you in silently (SSO) or shows a sign-in card; then the bot lists your teams.
 3. In the 1:1 chat, ask `Find the latest ... report in OneDrive and summarize it`.
 4. Add the app to a team. In a channel, `@Moti Agent Summarize the major decisions in this channel this week`.
+5. Open the **Threads** tab. The 1:1 conversation is listed; open it and ask a follow-up, then start a **New thread**. In a thread's **⋯** menu, **Continue in Chat** makes the chat continue it.
 5. Permission check with two accounts: put a file only user A can open, then have user B ask for it (also by explicit file id). B must not get it.
 
 ## Troubleshooting

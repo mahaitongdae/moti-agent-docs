@@ -18,6 +18,7 @@ export default defineConfig({
         text: "Setup",
         items: [
           { text: "Microsoft Teams", link: "/setup/microsoft-teams" },
+          { text: "Agent settings", link: "/setup/agent-settings" },
           { text: "GitHub todo list", link: "/setup/github-todo" },
           { text: "Company skills", link: "/setup/skills" },
           { text: "Deployment", link: "/setup/deployment" },

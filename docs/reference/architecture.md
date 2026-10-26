@@ -5,6 +5,8 @@ One Node.js process, one PostgreSQL database, one data volume. No message broker
 ```text
 Microsoft Teams ──HTTPS──> Caddy ──> app (Node 24, TypeScript)
                                       ├─ Teams SDK (@microsoft/teams.apps)   apps/teams-bot/src/teams-adapter.ts
+                                      ├─ Threads tab (page, functions, send) apps/teams-bot/src/threads-tab.ts, apps/teams-bot/threads-tab/
+                                      │    └─ ThreadService                   packages/agent/threads.ts
                                       ├─ AgentService                        packages/agent/service.ts
                                       │    ├─ IdentityService (tenant allowlist, users)   packages/auth/entra/identity.ts
                                       │    ├─ SessionService (ownership)                  packages/agent/sessions/
@@ -29,13 +31,16 @@ Microsoft Teams ──HTTPS──> Caddy ──> app (Node 24, TypeScript)
 
 1. Teams POSTs an activity to `/api/messages`. The Teams SDK validates the Bot Framework JWT and strips the `@mention`.
 2. `AgentService.handleMessage` (fast path, inside the HTTP request):
-   - resolves the sender: tenant must be in `ALLOWED_TENANT_IDS`, user must be `active`;
+   - resolves the sender: tenant must be in `microsoft.allowedTenantIds`, user must be `active`;
    - records the activity id; a repeated id is a duplicate delivery and is dropped;
-   - handles commands (`/new`, `/reset`, `/cancel`, `/stop`, `/signout`);
+   - handles commands (`/new`, `/reset`, `/cancel`, `/stop`, `/signout`, `/help`);
    - checks per-user limits, resolves the session, inserts an `agent_runs` row, enqueues the run, sends a typing indicator.
    The HTTP request then returns. Agent execution never depends on it.
-3. The `RunQueue` runs at most `AGENT_MAX_CONCURRENCY` runs at once and one run per session at a time.
-4. A run reloads the session, builds the tool list for the session kind, and calls Pi. Pi streams text; the reply is sent as one Teams message that is edited as text arrives (works in 1:1 and channels, no open HTTP request needed).
+3. The `RunQueue` runs at most `limits.concurrentAnswers` runs at once and one run per session at a time.
+4. A run reloads the session, builds the tool list for the session kind, and calls Pi. Pi streams text:
+   - 1:1 chats use Teams streaming (`ctx.stream`): progress notes ("Search files…") at each tool call, then text chunks, then one final message. When the user presses **Stop**, Teams rejects the next chunk and the run is cancelled.
+   - Channels and group chats get one message that is edited as text arrives.
+   Neither needs an open HTTP request. Final answers carry the AI-generated label and feedback buttons; a 👍 / 👎 is audited as `feedback_received` (reaction only).
 5. Usage (tokens, cost) is stored per assistant message. Tool calls are audited. The run is marked `succeeded`, `failed`, `cancelled`, `timed_out`, or (after a crash) `interrupted`.
 
 ## Sessions
@@ -49,18 +54,45 @@ Microsoft Teams ──HTTPS──> Caddy ──> app (Node 24, TypeScript)
 - Session identity: `tenant_id`, `user_id` (personal only), `conversation_id`, `session_id`.
 - A channel session is never an employee's private session. Anything a shared session can read is already visible to its members, so another member cannot pull one user's private files through the shared context.
 - In shared sessions each message is prefixed with the sender's name so Pi can tell speakers apart.
-- `/new` archives the active session; the next message creates a new one with a new Pi session file.
+- `/new` archives the active session; the next message creates a new one with a new Pi session file. Teams cannot clear the chat, so a **New conversation** card marks the boundary.
+- Each session stores a `title` (the start of its first message) and `last_message_at`.
+
+## Threads tab
+
+A personal tab in the Teams app (`staticTabs` entity `threads`, listed before the bot's Chat tab), served at `/tabs/threads/` as plain HTML and JavaScript (no build step). `@microsoft/teams-js`, `marked` and `DOMPurify` are served from `node_modules`.
+
+- The page gets a Teams single sign-on token (`authentication.getAuthToken`) for every call.
+- Functions (`/api/functions/threads.*`, via `app.function`): `list`, `get`, `rename`, `hide`, `stop`, `continue`, `decide`, `feedback`, `signout`. The Teams SDK validates the token (signature, audience `api://<HOST>/botid-<CLIENT_ID>` or the client id). Without `microsoft.clientId` every call gets `401`.
+- Sending is `POST /api/threads/send`: the same token check (the SDK's `RemoteFunctionValidator`), then server-sent events over the response: `thread`, `status` (tool progress), `delta` (answer text), `approval`, `signin`, `done`, `error`. The run goes through `AgentService.startThreadRun` (same limits, queue, audit and Pi run as the chat) with a web `Replier`.
+- The run does not depend on the connection. Closing the page leaves it running; the answer is saved in the Pi file and shown when the thread is opened again. Stop is an explicit `threads.stop`.
+- `ThreadService` maps the token's tenant and object id to an existing `users` row (tenant allowlist and blocking apply; no user is created) and touches only that user's `personal` sessions that are not hidden.
+- A thread is a `personal` session. Threads created in the tab belong to the user's 1:1 chat with the bot but are not its active session: the chat and the tab each keep their own current conversation. **Continue in Chat** makes a thread the chat's active session (one transaction; the unique active-session index holds) and posts a note in the chat. Installing the app creates the chat's session, so the tab works before the first message.
+- **Delete** sets `hidden_at`; the session and Pi file stay and follow the usual retention.
+- Sign-in stays in the chat: when a tool needs a sign-in, the app sends the OAuth card into the user's 1:1 chat with the bot (`TeamsApp.sendSignInCard`: the same card `OAuthFlow.signIn` sends, built from the stored conversation, without an inbound activity). The SDK's sign-in invoke handlers finish it there. The tab gets a `signin` event. Sending is tried twice; if both fail, the answer says sign-in is not available, as in the chat.
+- A transcript is read from the Pi session file: user and assistant text only, no tool calls. Proposals of the session come from `pending_actions`.
 - Pi owns the transcript and context management (including compaction). The application owns ownership and access: the Pi file path is stored on the session row and never derived from user input.
+
+## Configuration
+
+`packages/shared/config.ts` merges `config/agent.yaml` (public defaults, in git) with `config/agent.private.yaml` (company values, not in git; values there win), checks the result against a TypeBox schema (unknown keys and wrong values stop startup), and adds secrets and container settings from the environment (`CLIENT_SECRET`, provider keys, `DATABASE_URL`, `PUBLIC_HOSTNAME`, `PORT`, `DATA_DIR`). A setting that moved to YAML is refused in the environment. The Docker image contains `agent.yaml`; Compose mounts the private file read-only.
+
+## Model choice
+
+- `models.default` is the default model. `models.extra` adds models for Entra groups; `ModelAccess` (`packages/agent/models.ts`) checks membership with the user's Graph token and caches it.
+- A 1:1 session stores its model (`sessions.model`); new 1:1 sessions start with the user's last choice (`users.last_model`). Shared sessions use the default model.
+- Before each run the session's model is checked against the user's groups. The run passes the model to Pi; when it differs from the one the Pi session last used, Pi's own `setModel` records the switch (a `model_change` entry), so the session file shows which model answered from then on.
+- Thinking level works the same way: `sessions.thinking` and `users.last_thinking` (null: the model's default, its `models.extra` `thinking` or else `models.thinking`). It is not limited by group. An existing Pi session restores its own level; the run then calls Pi's `setThinkingLevel`, which fits the level to the model and records a `thinking_level_change` entry when it changes.
+- `agent_runs` records the model of each run; `usage_records` the model Pi reports for each answer.
 
 ## Pi integration
 
 Each run:
 - opens the session file (or creates one under `/data/pi-sessions/<session_id>/`);
-- uses in-memory settings (install telemetry off) and a resource loader with extensions, skills, prompt templates, themes and context files disabled, so Pi's codemode, tool search, and MCP extensions are never loaded. Company skills (`skills/`, `SKILLS_DIR`) are the one exception: Pi loads them from that folder only, lists them in its own `<available_skills>` section, and expands `/skill:name`. Pi's built-in `read` tool is replaced by the app's `read` (`packages/tools/skills/`), which reads only files whose real path is inside `SKILLS_DIR`; skills whose files sit outside are filtered out. The runtime checks that every active tool is exactly the app's definition;
+- uses in-memory settings (install telemetry off) and a resource loader with extensions, skills, prompt templates, themes and context files disabled, so Pi's codemode, tool search, and MCP extensions are never loaded. Company skills (`skills/`, `skillsDir`) are the one exception: Pi loads them from that folder only, lists them in its own `<available_skills>` section, and expands `/skill:name`. Pi's built-in `read` tool is replaced by the app's `read` (`packages/tools/skills/`), which reads only files whose real path is inside `skillsDir`; skills whose files sit outside are filtered out. The runtime checks that every active tool is exactly the app's definition;
 - passes an explicit tool allowlist, so Pi's built-in `read`, `bash`, `edit`, `write` are never enabled (checked after creation);
 - binds tools to the requesting user for this run only, then disposes the session.
 
-Pi version: `@earendil-works/pi-coding-agent` 1.4.0. One `ModelRuntime` is shared by all runs; it uses an in-memory credential store, no `models.json`, and no network catalog refresh. The model comes from `PI_PROVIDER` / `PI_MODEL` (any model in Pi's built-in catalog). API keys come from the provider's standard environment variable or `PI_API_KEY`.
+Pi version: `@earendil-works/pi-coding-agent` 1.4.0. One `ModelRuntime` is shared by all runs; it uses an in-memory credential store (or the one file `models.authFile`, for a subscription login), no `models.json`, and no network catalog refresh. The model comes from `models.default` (any model in Pi's built-in catalog). API keys come from the provider's standard environment variable or `PI_API_KEY`.
 
 ## Tools
 
@@ -83,8 +115,8 @@ Notes:
 ## GitHub todo list (optional)
 
 GitHub holds all data (issues, assignees, milestones, "blocked by" dependencies, and with a project its `Status` and `Target date`). The app keeps no copy. The project is optional:
-- With `GITHUB_ORG` + `GITHUB_PROJECT_NUMBER`, the todo list is that organization project.
-- Without it, the todo list is the issues of one repository (`GITHUB_DEFAULT_REPO` unless the user names one); a milestone's due date is the target date, and `status` / `target_date` changes are refused.
+- With `github.project`, the todo list is that organization project.
+- Without it, the todo list is the issues of one repository (`github.defaultRepo` unless the user names one); a milestone's due date is the target date, and `status` / `target_date` changes are refused.
 
 | Tool | GitHub calls |
 |---|---|

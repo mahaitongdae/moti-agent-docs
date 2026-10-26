@@ -19,7 +19,7 @@ The repository ships `skills/github-todo/SKILL.md`: rules for issues, milestones
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `SKILLS_DIR` | `./skills` | Folder that holds the skills. The Docker image copies the repository's `skills/` into the image. |
+| `skillsDir` (in `config/agent.yaml`) | `./skills` | Folder that holds the skills. The Docker image copies the repository's `skills/` into the image. |
 
 ## 2. Write a skill
 
@@ -37,12 +37,12 @@ description: Team rules for GitHub issues and milestones. Load before proposing 
 - `description`: when to use the skill. As in Pi, every chat lists each skill's name, description, and file location; the assistant reads the full `SKILL.md` only when a task matches. State both what the skill covers and when it applies.
 - `disable-model-invocation: true` hides a skill from the assistant; only `/skill:<name>` then uses it.
 - Supporting files (up to 100 KB) are referred to by their path relative to the skill folder, e.g. `references/template.md`.
-- The assistant's `read` tool reads only files whose real location is inside `SKILLS_DIR`. A symbolic link pointing outside is refused, and a skill whose `SKILL.md` sits outside is not listed.
+- The assistant's `read` tool reads only files whose real location is inside `skillsDir`. A symbolic link pointing outside is refused, and a skill whose `SKILL.md` sits outside is not listed.
 - A `SKILL.md` without a `description` is not listed.
 
 ## 3. Apply changes
 
-Skills are read again for every message, so edits apply to the next message. With Docker, the skills are part of the image: rebuild after editing (or mount a folder and point `SKILLS_DIR` at it):
+Skills are read again for every message, so edits apply to the next message. With Docker, the skills are part of the image: rebuild after editing (or mount a folder and point `skillsDir` at it):
 
 ```bash
 docker compose --env-file .env -f infra/compose.yaml up -d --build app

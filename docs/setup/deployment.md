@@ -12,7 +12,9 @@ Target: one Linux server with Docker Engine and the Compose plugin. Nothing here
 
 ```bash
 git clone <repo> company-agent && cd company-agent
-cp .env.example .env && chmod 600 .env    # fill in values
+cp .env.example .env && chmod 600 .env    # secrets: fill in values
+cp config/agent.private.example.yaml config/agent.private.yaml    # company settings: fill in values
+chmod 644 config/agent.private.yaml    # see Agent settings (agent-settings.md)
 docker compose --env-file .env -f infra/compose.yaml up -d --build
 docker compose --env-file .env -f infra/compose.yaml ps
 ```
@@ -48,7 +50,7 @@ infra/restore.sh backups/<timestamp> # REPLACES current database and agent data,
 - The backup dumps the database first, then archives files, so every session file referenced in the dump is present.
 - Backups contain conversation content. Store them encrypted and off the server (for example `restic` or `rclone` to company storage), and schedule them with cron or a systemd timer:
   `0 2 * * * cd /opt/company-agent && infra/backup.sh >>/var/log/company-agent-backup.log 2>&1`
-- `.env` holds secrets and is not in the backup; keep it in the company secret store.
+- `.env` holds secrets and is not in the backup; keep it in the company secret store. `config/agent.private.yaml` is not in the backup or in git either; keep a copy with `.env`.
 - The restore procedure is verified by `npm run test:backup` (runs against a throwaway Compose project).
 
 ## Moving to another server
@@ -56,7 +58,7 @@ infra/restore.sh backups/<timestamp> # REPLACES current database and agent data,
 No code changes are needed.
 
 1. On the old server: `infra/backup.sh`.
-2. On the new server: clone the repo, copy `.env` (same `CLIENT_ID`, `CLIENT_SECRET`, `TENANT_ID`, `PUBLIC_HOSTNAME`), copy the backup directory.
+2. On the new server: clone the repo, copy `.env` (same `CLIENT_SECRET`, `PUBLIC_HOSTNAME`) and `config/agent.private.yaml` (same `microsoft.clientId`, `microsoft.tenantId`), copy the backup directory.
 3. `docker compose --env-file .env -f infra/compose.yaml up -d --build`, then `infra/restore.sh <backup-dir>`.
 4. Point the DNS record of `PUBLIC_HOSTNAME` at the new server. Caddy gets a certificate on first request.
 5. Stop the old server.
@@ -71,5 +73,6 @@ Teams must reach your machine over HTTPS. Use a tunnel (for example Microsoft De
 npm install
 npm run test:db:up           # throwaway Postgres on localhost:55432 (also used by tests)
 cp .env.example .env         # set DATABASE_URL=postgres://postgres:test@localhost:55432/postgres, DATA_DIR=./data
+cp config/agent.private.example.yaml config/agent.private.yaml   # fill in
 node --env-file=.env apps/teams-bot/src/main.ts
 ```

@@ -9,7 +9,7 @@ Placeholders:
 
 Why each setting exists is explained in [authentication.md](../reference/authentication.md).
 
-The optional [GitHub todo list](github-todo.md) builds on this setup. Problems: [troubleshooting.md](troubleshooting.md). Daily use: [usage](../usage/microsoft-teams.md).
+Models, thinking levels and limits: [Agent settings](agent-settings.md). The optional [GitHub todo list](github-todo.md) builds on this setup. Problems: [troubleshooting.md](troubleshooting.md). Daily use: [usage](../usage/microsoft-teams.md).
 
 ## 1. Entra admin center: app registration
 
@@ -18,8 +18,8 @@ Entra admin center → **App registrations** → **New registration**.
 | Where | Setting | Value |
 |---|---|---|
 | New registration | Supported account types | **Accounts in this organizational directory only** |
-| Overview | Application (client) ID | copy → `.env` `CLIENT_ID` |
-| Overview | Directory (tenant) ID | copy → `.env` `TENANT_ID` and `ALLOWED_TENANT_IDS` |
+| Overview | Application (client) ID | copy → `config/agent.private.yaml` `microsoft.clientId` |
+| Overview | Directory (tenant) ID | copy → `config/agent.private.yaml` `microsoft.tenantId` and `microsoft.allowedTenantIds` |
 | Certificates & secrets | New client secret | copy the **Value** → `.env` `CLIENT_SECRET`. Note the expiry date. |
 | Authentication → Add a platform → **Web** | Redirect URI | `https://token.botframework.com/.auth/web/redirect` |
 
@@ -27,7 +27,7 @@ Entra admin center → **App registrations** → **New registration**.
 
 | Setting | Value |
 |---|---|
-| Application ID URI | `api://botid-<CLIENT_ID>`. The portal suggests `api://<CLIENT_ID>`; change it. |
+| Application ID URI | `api://<HOST>/botid-<CLIENT_ID>`. The portal suggests `api://<CLIENT_ID>`; change it. The host part is needed for the Threads tab's sign-in. If saving fails with "must contain a tenant verified domain" (a tunnel host), first open **Manifest**, set `"requestedAccessTokenVersion": 2` under `"api"` (older format: `"accessTokenAcceptedVersion": 2`), save, then set the URI. |
 | Add a scope | Name `access_as_user`; who can consent: **Admins and users**; state: **Enabled**. Display names and descriptions are free text. |
 | Add a client application | `1fec8e78-bce4-4aaf-ab1b-5451cc387264` (Teams desktop and mobile), tick `access_as_user` |
 | Add a client application | `5e3ce6c0-2b1f-4285-8d4b-75ee78787346` (Teams web), tick `access_as_user` |
@@ -60,11 +60,11 @@ Settings → Configuration → **Add OAuth Connection Settings**:
 
 | Setting | Value |
 |---|---|
-| Name | `graph` (must equal `.env` `GRAPH_CONNECTION_NAME`) |
+| Name | `graph` (must equal `microsoft.graphConnection` in `config/agent.yaml`) |
 | Service Provider | **Azure Active Directory v2** (may be shown as Microsoft Entra ID v2) |
 | Client id | `<CLIENT_ID>` |
 | Client secret | the client secret value |
-| Token Exchange URL | `api://botid-<CLIENT_ID>`, exactly as the Application ID URI |
+| Token Exchange URL | `api://<HOST>/botid-<CLIENT_ID>`, exactly as the Application ID URI |
 | Tenant ID | `<TENANT_ID>` |
 | Scopes | `User.Read Files.Read.All Sites.Read.All Team.ReadBasic.All Channel.ReadBasic.All ChannelMessage.Read.All offline_access openid profile` (space separated) |
 
@@ -72,11 +72,10 @@ Save, open the connection again, and click **Test Connection**. It must end with
 
 ## 3. Teams admin center: app upload
 
-Build the package:
+Build the package (after step 4, from the repository root). It reads `microsoft.clientId` and `teamsApp.companyName` from the settings files:
 
 ```bash
-CLIENT_ID=<CLIENT_ID> PUBLIC_HOSTNAME=<HOST> COMPANY_NAME="Your company" \
-  infra/teams-app/package.sh moti-agent.zip
+PUBLIC_HOSTNAME=<HOST> infra/teams-app/package.sh moti-agent.zip
 ```
 
 | Where | Setting |
@@ -90,35 +89,49 @@ After the org upload, employees find the app in Teams → Apps → **Built for y
 
 For a personal trial, a user can instead upload the zip in the Teams client: Apps → Manage your apps → **Upload a custom app**.
 
-Updates:
-- Changing the server address needs no new package; Teams follows the Azure Bot messaging endpoint.
-- After changing the app name, icons, descriptions, or `<CLIENT_ID>`: increase `"version"` in `infra/teams-app/manifest.json`, rebuild the zip, and in Manage apps open the app → **Update**. Installed copies update automatically.
+The zip holds only what Teams shows before it talks to the server:
+
+| File | Contents |
+|---|---|
+| `manifest.json` | `infra/teams-app/manifest.json` with `<CLIENT_ID>`, `<HOST>` and the company name filled in: app name, descriptions, bot id, command menu (`/new`, `/cancel`, `/model`, `/thinking`, `/signout`, `/help`), Threads tab URL, allowed domains, tab sign-in resource |
+| `color.png`, `outline.png` | app icons |
+
+Everything else comes from the server, so most changes need no new zip:
+
+| Change | New zip? |
+|---|---|
+| Agent code: replies, cards, tools, skills, the Threads tab page itself | No, rebuild and restart the server |
+| `.env` and `config/*.yaml` settings other than `PUBLIC_HOSTNAME`, `microsoft.clientId` and `teamsApp.companyName` | No, restart the server |
+| Azure Bot messaging endpoint, OAuth connection scopes | No |
+| App name, descriptions, icons, company name | Yes |
+| Command menu or tabs in `manifest.json` | Yes |
+| `<CLIENT_ID>` (a new app registration) | Yes |
+| `<HOST>` (server address) | Yes; also change the Application ID URI and Token Exchange URL (steps 1 and 2) and `PUBLIC_HOSTNAME`. Chat follows the messaging endpoint, but the Threads tab and its sign-in use `<HOST>`. |
+
+To update: increase `"version"` in `infra/teams-app/manifest.json` (Teams needs a higher version to update the app), rebuild the zip, and in Manage apps open the app → **Update**. Installed copies update automatically. For a personal trial upload, upload the new zip the same way as the first one.
 
 ## 4. Agent settings
 
-In `.env` (see `.env.example` for all settings):
+Create `config/agent.private.yaml` and `.env` as in [Agent settings](agent-settings.md) (files, models, limits). The values from steps 1–3:
+
+```yaml
+# config/agent.private.yaml
+microsoft:
+  tenantId: <TENANT_ID>
+  clientId: <CLIENT_ID>
+  allowedTenantIds: [<TENANT_ID>]   # users from other tenants get no answer
+teamsApp:
+  companyName: Your company
+models:
+  default: anthropic/claude-sonnet-5-5
+```
 
 ```
-CLIENT_ID=<CLIENT_ID>
+# .env
+PUBLIC_HOSTNAME=<HOST>               # also the Threads tab sign-in audience
 CLIENT_SECRET=...
-TENANT_ID=<TENANT_ID>
-ALLOWED_TENANT_IDS=<TENANT_ID>        # users from other tenants get no answer
-PI_PROVIDER=anthropic
-PI_MODEL=claude-sonnet-5-5
 ANTHROPIC_API_KEY=...
 ```
-
-Any provider and model in Pi's built-in catalog works. `PI_API_KEY` overrides the provider's standard key variable.
-
-Optional limits (defaults shown):
-
-| Setting | Default | Meaning |
-|---|---|---|
-| `USER_MAX_REQUESTS_PER_HOUR` | 30 | messages per user per hour |
-| `USER_MAX_TOKENS_PER_DAY` | 1000000 | LLM tokens per user per day |
-| `AGENT_MAX_CONCURRENCY` | 2 | answers produced at the same time |
-| `AGENT_MAX_QUEUE` | 50 | waiting messages before new ones are refused |
-| `AGENT_RUN_TIMEOUT_MS` | 180000 | longest time for one answer |
 
 Then start the agent: [deployment.md](deployment.md) for a server, [local-debugging.md](local-debugging.md) on your own machine.
 
@@ -135,6 +148,7 @@ Then start the agent: [deployment.md](deployment.md) for a server, [local-debugg
 |---|---|
 | Chat | step 1 app registration, step 2 Azure Bot, step 3 Teams app |
 | Files | step 1 API permissions `Files.Read.All`, `Sites.Read.All` and Expose an API (silent sign-in); step 2 OAuth connection `graph` with those scopes |
+| Threads tab | step 1 Expose an API with `<HOST>` in the Application ID URI and both Teams client applications; step 3 package built with the same `<HOST>`; `.env` `PUBLIC_HOSTNAME`. Sign-in for the tab's tool calls comes from the chat (step 2). The token setup was verified live with the History tab (version 0.3.0); the Threads page itself is not yet verified live. |
 | Channel summaries | step 1 API permissions `Team.ReadBasic.All`, `Channel.ReadBasic.All`, `ChannelMessage.Read.All`; step 2 OAuth connection `graph` with those scopes; app added to each team where people `@mention` it |
 
 Turning off a part means removing its permissions and scopes; the assistant then answers that sign-in or access is missing.
