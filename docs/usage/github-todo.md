@@ -34,7 +34,7 @@ The assistant replies with a card listing the changes. Check it, then press **Ap
 - A card expires after 30 minutes; ask again for a new one.
 - One card can hold up to 20 related changes.
 
-What can be changed: create issues; title, assignees, open/closed, milestone; add or remove "blocked by"; create or reopen milestones with a due date; with a project also status and target date. Projects are not created by the assistant.
+What can be changed: create issues; title, description, assignees, labels, open/closed, milestone; add comments; add or remove "blocked by"; create, rename, re-date, close or reopen milestones; with a project also status and target date. Labels and projects are not created by the assistant; use existing ones.
 
 GitHub works only in 1:1 chats. `/signout` disconnects both Microsoft 365 and GitHub.
 

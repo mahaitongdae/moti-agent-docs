@@ -36,6 +36,10 @@ features:
     title: GitHub todo list
     link: /usage/github-todo
     details: Optional. Track issues with owners, target dates, and dependencies. Every change waits for your Apply.
+  - icon: 📘
+    title: Company skills
+    link: /usage/skills
+    details: Shared rules and templates, such as what every issue must contain. The assistant asks when something is missing.
   - icon: 🔒
     title: Your permissions only
     details: Every request uses the employee's own sign-in. Nobody sees a file or channel they could not open themselves.

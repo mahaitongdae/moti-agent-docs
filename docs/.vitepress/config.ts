@@ -19,6 +19,7 @@ export default defineConfig({
         items: [
           { text: "Microsoft Teams", link: "/setup/microsoft-teams" },
           { text: "GitHub todo list", link: "/setup/github-todo" },
+          { text: "Company skills", link: "/setup/skills" },
           { text: "Deployment", link: "/setup/deployment" },
           { text: "Local debugging", link: "/setup/local-debugging" },
           { text: "Troubleshooting", link: "/setup/troubleshooting" },
@@ -29,6 +30,7 @@ export default defineConfig({
         items: [
           { text: "Microsoft Teams", link: "/usage/microsoft-teams" },
           { text: "GitHub todo list", link: "/usage/github-todo" },
+          { text: "Company skills", link: "/usage/skills" },
         ],
       },
       {

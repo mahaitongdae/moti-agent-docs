@@ -42,6 +42,7 @@ Use the setup without a project, for example `GITHUB_DEFAULT_REPO=edgeyy/tasks`.
 - Milestones can be created in GitHub (**Issues** → **Milestones**) or by the assistant after approval. Creating one needs write access to the repository.
 - Make the app public (app settings → **Advanced** → **Make public**, the same as **Any account**). A private app owned by a personal account can only be authorized by that account; everyone else gets a GitHub 404 page at sign-in. Public only means others can see and install the app on their own accounts; it gives no access to your repositories.
 - Projects owned by a personal account are not supported.
+- How the assistant works with GitHub (required fields, templates, filling in missing values, reply style) lives in the `github-todo` skill, not in the system prompt; see [Company skills setup](skills.md). Without the skill the GitHub tools still work, with only their own descriptions as guidance.
 
 ## 3. GitHub: project (only with a project)
 

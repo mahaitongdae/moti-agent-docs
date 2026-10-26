@@ -56,7 +56,7 @@ Microsoft Teams ──HTTPS──> Caddy ──> app (Node 24, TypeScript)
 
 Each run:
 - opens the session file (or creates one under `/data/pi-sessions/<session_id>/`);
-- uses in-memory settings (install telemetry off) and a resource loader with extensions, skills, prompt templates, themes and context files disabled, so Pi's codemode, tool search, and MCP extensions are never loaded;
+- uses in-memory settings (install telemetry off) and a resource loader with extensions, skills, prompt templates, themes and context files disabled, so Pi's codemode, tool search, and MCP extensions are never loaded. Company skills (`skills/`, `SKILLS_DIR`) are the one exception: Pi loads them from that folder only, lists them in its own `<available_skills>` section, and expands `/skill:name`. Pi's built-in `read` tool is replaced by the app's `read` (`packages/tools/skills/`), which reads only files whose real path is inside `SKILLS_DIR`; skills whose files sit outside are filtered out. The runtime checks that every active tool is exactly the app's definition;
 - passes an explicit tool allowlist, so Pi's built-in `read`, `bash`, `edit`, `write` are never enabled (checked after creation);
 - binds tools to the requesting user for this run only, then disposes the session.
 
@@ -89,10 +89,10 @@ GitHub holds all data (issues, assignees, milestones, "blocked by" dependencies,
 | Tool | GitHub calls |
 |---|---|
 | `list_todos(assignee?, status?, repo?, due_before?, include_closed?, limit?)` | with a project: `GET /orgs/{org}/projectsV2/{n}/fields`, `.../items`; without: `GET /repos/{o}/{r}/issues` (up to 1000 issues, filtered in code) |
-| `get_issue(repo, number)` | `GET /repos/{o}/{r}/issues/{n}`, `.../dependencies/blocked_by`, `.../dependencies/blocking`, `.../sub_issues`, project items |
-| `propose_issue_changes(changes[])` | reads only: checks issues, assignees (`GET .../assignees/{login}`), milestones (`GET .../milestones`), field names and status options |
+| `get_issue(repo, number)` | `GET /repos/{o}/{r}/issues/{n}`, `.../dependencies/blocked_by`, `.../dependencies/blocking`, `.../sub_issues`, `.../comments` (latest 20 of the first 100), project items |
+| `propose_issue_changes(changes[])` | reads only: checks issues, assignees (`GET .../assignees/{login}`), milestones (`GET .../milestones`), labels (`GET .../labels`), field names and status options |
 
-Changes (`create_issue`, `update_issue`, `add_blocker`, `remove_blocker`, `create_milestone`) are applied after approval by `applyChanges` (`packages/tools/github/changes.ts`): `POST/PATCH /repos/{o}/{r}/issues`, `POST/DELETE .../dependencies/blocked_by`, `POST/PATCH .../milestones`, `POST/PATCH /orgs/{org}/projectsV2/{n}/items` (only with a project).
+Changes (`create_issue`, `update_issue`, `add_comment`, `add_blocker`, `remove_blocker`, `create_milestone`, `update_milestone`) are applied after approval by `applyChanges` (`packages/tools/github/changes.ts`): `POST/PATCH /repos/{o}/{r}/issues`, `POST/DELETE .../labels`, `POST .../comments`, `POST/DELETE .../dependencies/blocked_by`, `POST/PATCH .../milestones`, `POST/PATCH /orgs/{org}/projectsV2/{n}/items` (only with a project).
 
 Approval flow:
 1. The tool stores the checked change in `pending_actions` and the run sends an Adaptive Card with **Apply** / **Cancel** (`Action.Execute`).
