@@ -39,6 +39,7 @@ Add a permission → **Microsoft Graph** → **Delegated permissions**:
 - `User.Read`, `openid`, `profile`, `offline_access`
 - `Files.Read.All`, `Sites.Read.All`
 - `Team.ReadBasic.All`, `Channel.ReadBasic.All`, `ChannelMessage.Read.All`
+- `Mail.ReadWrite`, `Mail.Send`, `MailboxSettings.ReadWrite`
 
 Then click **Grant admin consent for \<tenant\>**. Do not add any application permissions.
 
@@ -66,7 +67,7 @@ Settings → Configuration → **Add OAuth Connection Settings**:
 | Client secret | the client secret value |
 | Token Exchange URL | `api://<HOST>/botid-<CLIENT_ID>`, exactly as the Application ID URI |
 | Tenant ID | `<TENANT_ID>` |
-| Scopes | `User.Read Files.Read.All Sites.Read.All Team.ReadBasic.All Channel.ReadBasic.All ChannelMessage.Read.All offline_access openid profile` (space separated) |
+| Scopes | `User.Read Files.Read.All Sites.Read.All Team.ReadBasic.All Channel.ReadBasic.All ChannelMessage.Read.All Mail.ReadWrite Mail.Send MailboxSettings.ReadWrite offline_access openid profile` (space separated) |
 
 Save, open the connection again, and click **Test Connection**. It must end with a token. Do not share or paste that token anywhere.
 
@@ -150,5 +151,6 @@ Then start the agent: [deployment.md](deployment.md) for a server, [local-debugg
 | Files | step 1 API permissions `Files.Read.All`, `Sites.Read.All` and Expose an API (silent sign-in); step 2 OAuth connection `graph` with those scopes |
 | Threads tab | step 1 Expose an API with `<HOST>` in the Application ID URI and both Teams client applications; step 3 package built with the same `<HOST>`; `.env` `PUBLIC_HOSTNAME`. Sign-in for the tab's tool calls comes from the chat (step 2). The token setup was verified live with the History tab (version 0.3.0); the Threads page itself is not yet verified live. |
 | Channel summaries | step 1 API permissions `Team.ReadBasic.All`, `Channel.ReadBasic.All`, `ChannelMessage.Read.All`; step 2 OAuth connection `graph` with those scopes; app added to each team where people `@mention` it |
+| Mail | step 1 API permissions `Mail.ReadWrite` (read, drafts, flags, folders), `Mail.Send` (send, reply, forward), `MailboxSettings.ReadWrite` (automatic replies); step 2 OAuth connection `graph` with those scopes. Each user's own mailbox only, in 1:1 chats; every change waits for the user's Apply. Leave out `Mail.Send` or `MailboxSettings.ReadWrite` to turn that part off. Not yet verified live. |
 
 Turning off a part means removing its permissions and scopes; the assistant then answers that sign-in or access is missing.

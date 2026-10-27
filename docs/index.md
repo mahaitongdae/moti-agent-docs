@@ -32,6 +32,10 @@ features:
     title: Channel summaries
     details: Summarize Teams channel discussions, with decisions and action items called out.
     link: /usage/microsoft-teams#channel-summaries
+  - icon: ✉️
+    title: Outlook mail
+    details: Find, summarize, and answer your own mail in a 1:1 chat. Every send or change waits for your Apply.
+    link: /usage/microsoft-teams#mail
   - icon: ✅
     title: GitHub todo list
     link: /usage/github-todo
@@ -42,7 +46,7 @@ features:
     details: Shared rules and templates, such as what every issue must contain. The assistant asks when something is missing.
   - icon: 🔒
     title: Your permissions only
-    details: Every request uses the employee's own sign-in. Nobody sees a file or channel they could not open themselves.
+    details: Every request uses the employee's own sign-in. Nobody sees a file, mail, or channel they could not open themselves.
   - icon: 🏠
     title: Self-hosted
     details: One Docker Compose stack with HTTPS, health checks, logs, and backup/restore on your own server.

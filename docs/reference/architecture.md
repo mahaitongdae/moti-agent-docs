@@ -14,7 +14,7 @@ Microsoft Teams ──HTTPS──> Caddy ──> app (Node 24, TypeScript)
                                       │    └─ usage limits                                packages/agent/usage.ts
                                       ├─ PiRuntime (Pi SDK)                  packages/agent/runtime/pi-runtime.ts
                                       ├─ Tool registry + policy              packages/tools/registry.ts, packages/auth/permissions/
-                                      ├─ Graph tools                         packages/tools/microsoft/{onedrive,teams}/
+                                      ├─ Graph tools                         packages/tools/microsoft/{onedrive,teams,outlook}/
                                       ├─ GitHub tools (optional)             packages/tools/github/
                                       ├─ ProposalService (approve changes)   packages/agent/proposals.ts
                                       ├─ UserTokenService (per connection)   packages/auth/user-token.ts
@@ -96,7 +96,7 @@ Pi version: `@earendil-works/pi-coding-agent` 1.4.0. One `ModelRuntime` is share
 
 ## Tools
 
-All Microsoft 365 tools are read-only Graph calls with the requesting user's delegated token.
+All Microsoft 365 tools are Graph calls with the requesting user's delegated token. They only read, except `propose_mail_changes`, whose changes run after approval.
 
 | Tool | Graph call |
 |---|---|
@@ -107,9 +107,18 @@ All Microsoft 365 tools are read-only Graph calls with the requesting user's del
 | `list_accessible_teams()` | `GET /me/joinedTeams` |
 | `list_channels(team_id)` | `GET /teams/{t}/channels` |
 | `get_channel_messages(team_id, channel_id, limit?, since?)` | `GET /teams/{t}/channels/{c}/messages?$expand=replies` |
+| `search_mail(query?, since?, limit?)` | `GET /me/messages` with `$search` (query), or `$filter` + `$orderby` on `receivedDateTime` |
+| `read_mail(message_id)` | `GET /me/messages/{id}`; HTML body converted to text, attachments not read |
+| `list_mail_folders(parent_folder_id?)` | `GET /me/mailFolders` or `/me/mailFolders/{id}/childFolders` |
+| `get_auto_reply()` | `GET /me/mailboxSettings/automaticRepliesSetting` |
+| `propose_mail_changes(changes[])` | reads only: checks messages (`GET /me/messages/{id}`, drafts must be drafts) and folders (`GET /me/mailFolders/{id}`; the target must not be Deleted Items or any folder inside it, checked up the parent chain) |
+
+Mail changes are applied after approval by `applyMailChanges` (`packages/tools/microsoft/outlook/changes.ts`): `send_mail` (`POST /me/sendMail`), `create_draft` (`POST /me/messages`), `send_draft` (`POST .../send`), `reply` (`.../reply` or `.../replyAll`), `forward`, `update_message` (`PATCH /me/messages/{id}`, `POST .../move`), `create_folder`, `rename_folder` (`/me/mailFolders`), `set_auto_reply` (`PATCH /me/mailboxSettings`). Mail bodies are sent as plain text; reply, forward and automatic reply texts are HTML-escaped. There is no delete.
 
 Notes:
 - `file_id` is `driveId:itemId`, so the same tools cover OneDrive and SharePoint libraries (there is no separate `sharepoint` package).
+- Tools show each `web_url` as a short id (`src:1a2b3c4d`), so the model does not spend 100+ tokens writing out each Outlook or SharePoint link. The id map is kept in the tool result in the Pi session; answers (streamed, final, and in the Threads tab) and tool arguments get the real links back (`packages/tools/links.ts`).
+- Mail tools use `/me/messages`, so they reach only the signed-in user's own mailbox. They are allowed in 1:1 chats only.
 - `get_channel_messages` takes `team_id` in addition to the planned `channel_id`, because Graph addresses channels within a team.
 
 ## GitHub todo list (optional)
@@ -129,7 +138,7 @@ Changes (`create_issue`, `update_issue`, `add_comment`, `add_blocker`, `remove_b
 Approval flow:
 1. The tool stores the checked change in `pending_actions` and the run sends an Adaptive Card with **Apply** / **Cancel** (`Action.Execute`).
 2. The press arrives as an `adaptiveCard/action` invoke. `AgentService.handleCardAction` resolves the user, claims the proposal, and replaces the card with "Applying…".
-3. Changes run in the background with the user's GitHub token; the result is posted as a new message and stored on the row.
+3. Changes run in the background with the user's GitHub or Microsoft 365 token; the result is posted as a new message and stored on the row.
 
 Not included: automatic updates without a user request (for example from GitHub webhooks). Those would need a credential that is not tied to one employee. Use the project's built-in workflows (auto-add, close → Done) instead.
 

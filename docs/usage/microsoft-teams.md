@@ -1,12 +1,12 @@
 # Microsoft Teams
 
-Talk to the assistant in a 1:1 chat or `@mention` it in a channel. It answers questions, searches and summarizes OneDrive and SharePoint files, and summarizes Teams channels. It uses your own sign-in, so it only reaches files and channels you can open yourself. It never edits, moves, shares, deletes, or posts anything in Microsoft 365.
+Talk to the assistant in a 1:1 chat or `@mention` it in a channel. It answers questions, searches and summarizes OneDrive and SharePoint files, reads and handles your Outlook mail, and summarizes Teams channels. It uses your own sign-in, so it only reaches files, mail, and channels you can open yourself. It never edits, moves, shares, or deletes files, and never posts in Teams. Mail changes happen only after you press **Apply**.
 
 ## Where to talk to it
 
 | Where | Can do |
 |---|---|
-| 1:1 chat | everything: questions, your files, any team and channel you belong to |
+| 1:1 chat | everything: questions, your files, your mail, any team and channel you belong to |
 | Channel (`@mention`) | questions, and read that channel only |
 | Group chat | questions only |
 
@@ -22,7 +22,7 @@ In a channel, each thread is its own conversation, shared by everyone in the thr
 
 ## First use: sign in
 
-The first time you ask about files or channels in a 1:1 chat, Teams signs you in silently. If that does not work, the assistant sends a sign-in card. Press **Sign in**, then ask again. If you `@mention` it in a channel before signing in, it asks you to message it directly first.
+The first time you ask about files, mail, or channels in a 1:1 chat, Teams signs you in silently. If that does not work, the assistant sends a sign-in card. Press **Sign in**, then ask again. If you `@mention` it in a channel before signing in, it asks you to message it directly first.
 
 <Screenshot caption="Microsoft 365 sign-in card" />
 
@@ -48,6 +48,40 @@ Answers link to the files they used.
 | Images, archives, other formats | not read; name and details only |
 
 Files over 20 MB are not read.
+
+## Mail
+
+Ask in a 1:1 chat:
+
+```
+What did Anna send me about the budget?
+Summarize my unread mail from today
+Find the mail with the signed offer and tell me the start date
+```
+
+It reads only your own mailbox, and only in a 1:1 chat, never in a channel or group chat. Answers link to the mails they used. It reads the text of a mail, not its attachments.
+
+It can also change your mail:
+
+```
+Reply to Anna: thanks, Thursday works for me
+Forward the offer mail to hr@contoso.com
+Write a draft to the team about Friday's release
+Move this week's mail from the build robot to the Builds folder
+I am out of office Nov 3 to Nov 7, tell people to contact Ben
+```
+
+| Can do | |
+|---|---|
+| Send | new mail, replies, reply all, forwards, drafts you saved |
+| Drafts | save a new draft in Drafts |
+| Mail | mark read or unread, flag, categories, move to another folder |
+| Folders | create, rename |
+| Automatic replies | turn on (now or for a time window) or off, with the text to send |
+
+Nothing happens right away. You get a card with every change, including the full text of each mail. Press **Apply** to run them, or **Cancel**. The card expires after 30 minutes. It cannot delete mail, move mail to Deleted Items or a folder inside it, or add attachments. To move mail into a new folder, ask for the folder first, then for the move.
+
+If it says it cannot access your mail, send `/signout`, then ask again and sign in.
 
 ## Channel summaries
 
