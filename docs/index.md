@@ -26,7 +26,7 @@ features:
     details: Message it 1:1 or @mention it in a channel. Replies stream in as they are written.
   - icon: 📁
     title: OneDrive and SharePoint
-    details: Search, read, and summarize files, including Word, Excel, PowerPoint, and PDF.
+    details: Search, read, and summarize files, including Word, Excel, PowerPoint, and PDF. Create, move, or delete them, and update Excel cells, after your Apply.
     link: /usage/microsoft-teams#files
   - icon: 🗂️
     title: Channel summaries

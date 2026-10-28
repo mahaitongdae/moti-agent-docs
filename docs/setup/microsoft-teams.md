@@ -37,11 +37,13 @@ Entra admin center → **App registrations** → **New registration**.
 Add a permission → **Microsoft Graph** → **Delegated permissions**:
 
 - `User.Read`, `openid`, `profile`, `offline_access`
-- `Files.Read.All`, `Sites.Read.All`
+- `Files.ReadWrite.All`, `Sites.Read.All`
 - `Team.ReadBasic.All`, `Channel.ReadBasic.All`, `ChannelMessage.Read.All`
 - `Mail.ReadWrite`, `Mail.Send`, `MailboxSettings.ReadWrite`
 
 Then click **Grant admin consent for \<tenant\>**. Do not add any application permissions.
+
+<Screenshot src="/images/setup/microsoft-teams-01-api-permissions.png" caption="API permissions after admin consent" />
 
 ## 2. Azure portal: Azure Bot
 
@@ -55,6 +57,8 @@ Azure portal → **Create a resource** → **Azure Bot**.
 | Settings → Configuration | Messaging endpoint | `https://<HOST>/api/messages` |
 | Settings → Channels | Add channel | **Microsoft Teams** |
 
+<Screenshot src="/images/setup/microsoft-teams-02-azure-bot-configuration.png" caption="Azure Bot configuration with the OAuth connections" />
+
 ### OAuth connection
 
 Settings → Configuration → **Add OAuth Connection Settings**:
@@ -67,7 +71,7 @@ Settings → Configuration → **Add OAuth Connection Settings**:
 | Client secret | the client secret value |
 | Token Exchange URL | `api://<HOST>/botid-<CLIENT_ID>`, exactly as the Application ID URI |
 | Tenant ID | `<TENANT_ID>` |
-| Scopes | `User.Read Files.Read.All Sites.Read.All Team.ReadBasic.All Channel.ReadBasic.All ChannelMessage.Read.All Mail.ReadWrite Mail.Send MailboxSettings.ReadWrite offline_access openid profile` (space separated) |
+| Scopes | `User.Read Files.ReadWrite.All Sites.Read.All Team.ReadBasic.All Channel.ReadBasic.All ChannelMessage.Read.All Mail.ReadWrite Mail.Send MailboxSettings.ReadWrite offline_access openid profile` (space separated) |
 
 Save, open the connection again, and click **Test Connection**. It must end with a token. Do not share or paste that token anywhere.
 
@@ -121,6 +125,7 @@ microsoft:
   tenantId: <TENANT_ID>
   clientId: <CLIENT_ID>
   allowedTenantIds: [<TENANT_ID>]   # users from other tenants get no answer
+  companySite: https://<tenant>.sharepoint.com/sites/<site>   # optional: library with the company folders
 teamsApp:
   companyName: Your company
 models:
@@ -148,7 +153,8 @@ Then start the agent: [deployment.md](deployment.md) for a server, [local-debugg
 | Part | Settings |
 |---|---|
 | Chat | step 1 app registration, step 2 Azure Bot, step 3 Teams app |
-| Files | step 1 API permissions `Files.Read.All`, `Sites.Read.All` and Expose an API (silent sign-in); step 2 OAuth connection `graph` with those scopes |
+| Files | step 1 API permissions `Files.ReadWrite.All`, `Sites.Read.All` and Expose an API (silent sign-in); step 2 OAuth connection `graph` with those scopes. With `Files.Read.All` instead, reading works and every file change fails. Users sign in again after the scope changes. |
+| Company folders | step 4 `microsoft.companySite`: the SharePoint site whose document library holds the folders in `skills/company-files/SKILL.md` ([skills](skills.md)). Without it, file changes work only with folders found by search or listing. File changes and paths are not yet verified live. |
 | Threads tab | step 1 Expose an API with `<HOST>` in the Application ID URI and both Teams client applications; step 3 package built with the same `<HOST>`; `.env` `PUBLIC_HOSTNAME`. Sign-in for the tab's tool calls comes from the chat (step 2). The token setup was verified live with the History tab (version 0.3.0); the Threads page itself is not yet verified live. |
 | Channel summaries | step 1 API permissions `Team.ReadBasic.All`, `Channel.ReadBasic.All`, `ChannelMessage.Read.All`; step 2 OAuth connection `graph` with those scopes; app added to each team where people `@mention` it |
 | Mail | step 1 API permissions `Mail.ReadWrite` (read, drafts, flags, folders), `Mail.Send` (send, reply, forward), `MailboxSettings.ReadWrite` (automatic replies); step 2 OAuth connection `graph` with those scopes. Each user's own mailbox only, in 1:1 chats; every change waits for the user's Apply. Leave out `Mail.Send` or `MailboxSettings.ReadWrite` to turn that part off. |

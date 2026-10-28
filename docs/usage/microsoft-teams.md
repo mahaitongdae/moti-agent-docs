@@ -1,6 +1,6 @@
 # Microsoft Teams
 
-Talk to the assistant in a 1:1 chat or `@mention` it in a channel. It answers questions, searches and summarizes OneDrive and SharePoint files, reads and handles your Outlook mail, and summarizes Teams channels. It uses your own sign-in, so it only reaches files, mail, and channels you can open yourself. It never edits, moves, shares, or deletes files, and never posts in Teams. Mail changes happen only after you press **Apply**.
+Talk to the assistant in a 1:1 chat or `@mention` it in a channel. It answers questions, searches and summarizes OneDrive and SharePoint files, reads and handles your Outlook mail, and summarizes Teams channels. It uses your own sign-in, so it only reaches files, mail, and channels you can open yourself. It never changes sharing and never posts in Teams. File and mail changes happen only after you press **Apply**.
 
 ## Where to talk to it
 
@@ -44,10 +44,35 @@ Answers link to the files they used.
 |---|---|
 | `.txt`, `.md`, `.csv`, `.json`, `.html`, `.xml`, `.yaml`, `.log` and similar | text |
 | `.pdf` | text extracted from the PDF |
-| Word, Excel, PowerPoint (`.docx`, `.xlsx`, `.pptx`, older and OpenDocument formats) | converted to PDF by Microsoft 365, then text |
+| Excel (`.xlsx`) | cells as shown in Excel, with sheets and tables (up to 200 rows and 30 columns at a time; ask for a range for more) |
+| Word, PowerPoint, older Excel (`.docx`, `.pptx`, `.xls`, older and OpenDocument formats) | converted to PDF by Microsoft 365, then text |
 | Images, archives, other formats | not read; name and details only |
 
 Files over 20 MB are not read.
+
+It can also change files:
+
+```
+Write today's meeting notes into Development
+Mark "Calibrate arm" as done in the Development todo list
+Add "order parts" for Bob, due Nov 14, to the todo list
+Make an Excel list of the parts we need, with name, count and supplier
+Move last year's reports to Archive
+Rename the budget draft to 2026-11-01 Budget.md
+```
+
+| Can do | |
+|---|---|
+| Folders | create |
+| Text files (`.md`, `.txt`, `.csv`, `.tsv`, `.json`, `.yaml`) | create, replace the whole content |
+| Excel (`.xlsx`) | create (one sheet, optionally as a table), change cells, add rows to a table; everything else in the file stays as it is |
+| Any file or folder | rename, move, copy, delete (to the recycle bin) |
+
+Nothing happens right away. You get a card with every change, including the text it will write (long texts show the first part). Press **Apply** to run them, or **Cancel**. The card expires after 30 minutes. If someone changes a file after the card was made, replacing or deleting that file, or changing those Excel cells, fails instead of overwriting their work.
+
+It cannot edit Word or PowerPoint content, or change who a file is shared with. It moves files only within the same OneDrive or SharePoint library; to another place it copies.
+
+It follows the company's rules for where files go, how to name them, and how to write them. Ask "where should the design review go?" to hear them.
 
 ## Mail
 

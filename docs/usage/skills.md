@@ -1,6 +1,6 @@
 # Company skills
 
-Your admins can give the assistant shared rules, for example what every new GitHub issue must contain. The assistant follows them on its own; if something the rules require is missing, it asks you before proposing a change.
+Your admins can give the assistant shared rules, for example where files go in SharePoint and how to write them, or what every new GitHub issue must contain. The assistant follows them on its own; if something the rules require is missing, it asks you before proposing a change.
 
 To make the assistant use a skill for one request in a 1:1 chat, start the message with `/skill:` and the skill's name:
 

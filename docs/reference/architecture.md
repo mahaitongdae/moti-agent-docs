@@ -96,14 +96,16 @@ Pi version: `@earendil-works/pi-coding-agent` 1.4.0. One `ModelRuntime` is share
 
 ## Tools
 
-All Microsoft 365 tools are Graph calls with the requesting user's delegated token. They only read, except `propose_mail_changes`, whose changes run after approval.
+All Microsoft 365 tools are Graph calls with the requesting user's delegated token. They only read, except `propose_file_changes` and `propose_mail_changes`, whose changes run after approval.
 
 | Tool | Graph call |
 |---|---|
 | `search_files(query, limit?)` | `POST /search/query` (driveItem) — OneDrive and SharePoint |
-| `list_folder(folder_id, limit?)` | `GET /me/drive/root/children` or `/drives/{d}/items/{i}/children` |
+| `list_folder(folder_id, limit?)` | `GET /me/drive/root/children`, `/drives/{d}/items/{i}/children`, or `/drives/{d}/root:/{path}:/children` for a path in the company library |
 | `get_file_metadata(file_id)` | `GET /drives/{d}/items/{i}` |
 | `read_file(file_id)` | item metadata + `/content` (text, PDF) or `/content?format=pdf` (Office); text extracted with `unpdf` |
+| `read_workbook(file_id, sheet?, range?)` | `.xlsx` only: `GET .../workbook/worksheets`, `.../tables` (+ each table's `/range`), then `.../worksheets/{s}/usedRange(valuesOnly=true)` or the given range, cells as displayed (`text`), capped at 200 rows × 30 columns |
+| `propose_file_changes(changes[])` | reads only: looks up each item and folder (`GET /drives/{d}/items/{i}` or by path), checks types and names, keeps the `eTag` for replace and delete |
 | `list_accessible_teams()` | `GET /me/joinedTeams` |
 | `list_channels(team_id)` | `GET /teams/{t}/channels` |
 | `get_channel_messages(team_id, channel_id, limit?, since?)` | `GET /teams/{t}/channels/{c}/messages?$expand=replies` |
@@ -115,8 +117,10 @@ All Microsoft 365 tools are Graph calls with the requesting user's delegated tok
 
 Mail changes are applied after approval by `applyMailChanges` (`packages/tools/microsoft/outlook/changes.ts`): `send_mail` (`POST /me/sendMail`), `create_draft` (`POST /me/messages`), `send_draft` (`POST .../send`), `reply` (`.../reply` or `.../replyAll`), `forward`, `update_message` (`PATCH /me/messages/{id}`, `POST .../move`), `create_folder`, `rename_folder` (`/me/mailFolders`), `set_auto_reply` (`PATCH /me/mailboxSettings`). Mail bodies are sent as plain text; reply, forward and automatic reply texts are HTML-escaped. There is no delete.
 
+File changes are applied after approval by `applyFileChanges` (`packages/tools/microsoft/onedrive/changes.ts`): `create_folder` (`POST .../children`, fails if the name is taken), `create_text_file` (`PUT .../{parent}:/{name}:/content`, fails if taken), `create_workbook` (same upload of an `.xlsx` built in memory by `xlsx-file.ts`: one sheet, optionally one table over all rows; no extra library), `replace_text_file` (`PUT .../content` with `If-Match`), `rename` and `move` (`PATCH /drives/{d}/items/{i}`), `copy` (`POST .../copy`, runs in the background), `delete` (`DELETE` with `If-Match`; to the recycle bin), `update_cells` (`PATCH .../worksheets/{s}/range(address='…')`, after reading the cells again: if their values differ from those seen when proposing, the change fails), `add_table_rows` (`POST .../workbook/tables/{t}/rows`). A change may go into a folder that an earlier change in the same proposal creates (given as a library path); that folder is looked up by path when applied. With `If-Match`, a file changed after the proposal is not overwritten or deleted (412). Only text and new `.xlsx` files are uploaded; sharing is never changed.
+
 Notes:
-- `file_id` is `driveId:itemId`, so the same tools cover OneDrive and SharePoint libraries (there is no separate `sharepoint` package).
+- `file_id` is `driveId:itemId`, so the same tools cover OneDrive and SharePoint libraries (there is no separate `sharepoint` package). Folders can also be paths such as `/Development/Meetings` in the library of `microsoft.companySite`: the site's drive id is looked up once (`GET /sites/{host}:{path}`, then `/sites/{id}/drive`), and every item is still read with the user's own token.
 - Tools show each `web_url` as a short id (`src:1a2b3c4d`), so the model does not spend 100+ tokens writing out each Outlook or SharePoint link. The id map is kept in the tool result in the Pi session; answers (streamed, final, and in the Threads tab) and tool arguments get the real links back (`packages/tools/links.ts`).
 - Mail tools use `/me/messages`, so they reach only the signed-in user's own mailbox. They are allowed in 1:1 chats only.
 - `get_channel_messages` takes `team_id` in addition to the planned `channel_id`, because Graph addresses channels within a team.

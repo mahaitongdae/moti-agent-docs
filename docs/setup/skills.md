@@ -10,12 +10,17 @@ Each skill is a folder with a `SKILL.md` file ([Agent Skills format](https://age
 
 ```text
 skills/
-└── github-todo/
+└── company-files/
     ├── SKILL.md
-    └── references/        optional supporting files
+    └── templates/         optional supporting files, read by the assistant on demand
 ```
 
-The repository ships `skills/github-todo/SKILL.md`: rules for issues, milestones, and labels on the [GitHub todo list](github-todo.md). Edit it to match your team.
+The repository ships two skills. Edit them to match your team.
+
+| Skill | Rules for |
+|---|---|
+| `skills/company-files/SKILL.md` | the folders in the company SharePoint library (`Administrative`, `Development`, `Shared`, `Templates`; the first three each with `Todo.md`, `Meetings/`, `Reports/`, `Archive/`), file names, writing style, and todo lists (a Markdown table with columns Item, Owner, Due, Status, Notes). Templates for new files are in `skills/company-files/templates/`; add a file there and a row to the skill's Templates table for each new one, and put a copy in the library's `Templates/` so people can see it. Word and Excel templates go only in `Templates/`; the assistant copies them. Set `microsoft.companySite` ([Microsoft Teams setup, step 4](microsoft-teams.md#_4-agent-settings)) so the assistant can use these paths. Create the folders in SharePoint yourself, or ask the assistant to propose them. |
+| `skills/github-todo/SKILL.md` | issues, milestones, and labels on the [GitHub todo list](github-todo.md) |
 
 | Setting | Default | Meaning |
 |---|---|---|
