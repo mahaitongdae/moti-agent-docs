@@ -6,9 +6,9 @@ Talk to the assistant in a 1:1 chat or `@mention` it in a channel. It answers qu
 
 | Where | Can do |
 |---|---|
-| 1:1 chat | everything: questions, your files, your mail, any team and channel you belong to |
-| Channel (`@mention`) | questions, and read that channel only |
-| Group chat | questions only |
+| 1:1 chat | everything: questions, your files, your mail, meetings, any team and channel you belong to |
+| Channel (`@mention`) | questions, that channel's messages and members, files in that channel, its team's SharePoint site and the company library, meetings, GitHub todos |
+| Group or meeting chat (`@mention`) | questions, and files everyone in the chat can open |
 
 Open the app in Teams (Apps → **Built for your org**, or the pinned icon) and send a message. When you first add the app, or send `/help`, it shows a card with what it can do and example questions you can press.
 
@@ -19,6 +19,10 @@ The conversation keeps its context until you start a new one.
 <Screenshot caption="A 1:1 chat with the assistant" />
 
 In a channel, each thread is its own conversation, shared by everyone in the thread.
+
+In a private or shared channel, someone must first add the app to that channel itself; adding it to the team is not enough there.
+
+Everyone in a channel thread sees the answers. So there it never reads your OneDrive, your mail, or other channels. It still uses your own sign-in, so it only reaches what you can open yourself. When it proposes a change there, only you can press **Apply**; if someone else presses it, only they see a note and the card stays.
 
 ## First use: sign in
 
@@ -37,6 +41,15 @@ Who last changed budget-2026.xlsx, and when?
 ```
 
 Answers link to the files they used.
+
+In a channel, `@mention` it to read the channel's files, its team's SharePoint site, and the company library:
+
+```
+@Moti Agent What files are in this channel?
+@Moti Agent Summarize the project plan on our team site
+```
+
+In a group or meeting chat, it reads a file only if everyone in the chat can open it: the company library when everyone is from your company (no guests), or a team's site when everyone in the chat is in that team. Anything else, such as your own OneDrive, it does not read there.
 
 <Screenshot caption="File search and summary in a 1:1 chat" />
 
@@ -106,7 +119,21 @@ I am out of office Nov 3 to Nov 7, tell people to contact Ben
 
 Nothing happens right away. You get a card with every change, including the full text of each mail. Press **Apply** to run them, or **Cancel**. The card expires after 30 minutes. It cannot delete mail, move mail to Deleted Items or a folder inside it, or add attachments. To move mail into a new folder, ask for the folder first, then for the move.
 
-If it says it cannot access your mail, send `/signout`, then ask again and sign in.
+If it says it cannot access your mail, send `/signout microsoft`, then ask again and sign in.
+
+## Meetings
+
+Ask in a 1:1 chat or `@mention` it in a channel:
+
+```
+When are Anna and Ben free on Tuesday afternoon?
+Set up 30 minutes with everyone in this channel on Thursday about the release
+Book a meeting with Anna tomorrow at 10 in room Oslo, without a Teams link
+```
+
+It looks up people by name, and in a channel it can invite the channel's members. It sees only when people are busy, not what their meetings are. Times are in your own Outlook time zone unless you name another.
+
+Nothing happens right away. You get a card with the meeting: title, time, who is invited. Press **Apply** to create it in your calendar and send the invitations, or **Cancel**. The meeting has a Teams link unless you ask for none. It cannot change or cancel existing meetings.
 
 ## Channel summaries
 
@@ -137,7 +164,7 @@ The **Threads** tab is the first tab of the app: a chat page with all your 1:1 c
 - Answers appear as they are written, with tables, lists and code blocks. **Stop** (the square button) stops an answer.
 - Under an answer: copy, 👍 and 👎.
 - Proposed GitHub changes show **Apply** and **Cancel** right in the thread.
-- Type `/` for commands: `/new`, `/help`, `/stop`, `/model`, `/thinking`, `/signout`.
+- Type `/` for commands: `/new`, `/help`, `/stop`, `/model`, `/thinking`, `/signout microsoft`, `/signout github` (if used), `/signout all`.
 - The model name at the top opens a menu: the models your admin allows you, and, under **Thinking**, how much the model thinks before answering (when the model supports it). The choice applies to this thread. New threads start with what you chose last.
 - **⋯** next to a thread: **Rename**, **Continue in Chat** (the Teams chat then continues this thread), **Delete** (removes it from your list).
 - If you close the tab while an answer is written, it is still saved; open the thread again to see it.
@@ -162,7 +189,7 @@ Only you see your threads. Channel and group chat conversations are not listed.
 | `/cancel` (or `/stop`) | stop the answer that is being written |
 | `/model` | choose the model for this conversation (1:1 chat only; lists the models your admin allows you) |
 | `/thinking` | choose how much the model thinks before answering, for this conversation (1:1 chat only; the levels depend on the model). More thinking can help with hard questions but is slower and costs more |
-| `/signout` | disconnect Microsoft 365 (and GitHub, if used) |
+| `/signout` | disconnect an account. With GitHub in use, it asks which one; or send `/signout microsoft`, `/signout github` or `/signout all` |
 | `/help` | show what the assistant can do |
 
 ## Messages you may see

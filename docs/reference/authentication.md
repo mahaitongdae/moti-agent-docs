@@ -44,4 +44,4 @@ A Teams message alone never grants Microsoft 365 access:
 - Sign-in is requested only when a tool needs Microsoft 365, and only in 1:1 chats (OAuth cards in channels are not supported for this). With SSO configured, Teams completes it silently.
 - In the Threads tab, a question that needs a sign-in sends the sign-in card to the user's 1:1 chat, and the answer says so.
 - In channels, users who are not signed in are told to message the bot directly once.
-- `/signout` disconnects the user's Microsoft 365 connection.
+- `/signout microsoft`, `/signout github` or `/signout all` disconnects one or all of the user's connections. `/signout` alone asks which when GitHub is set up, and otherwise disconnects Microsoft 365.

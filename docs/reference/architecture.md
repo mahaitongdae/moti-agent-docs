@@ -48,11 +48,12 @@ Microsoft Teams ──HTTPS──> Caddy ──> app (Node 24, TypeScript)
 | Teams conversation | Session kind | Owner | Tools |
 |---|---|---|---|
 | 1:1 chat | `personal` | the user | all Graph tools, with the user's token; GitHub tools with the user's GitHub token |
-| Channel thread | `channel` | the channel thread (`team_id`, `channel_id`, thread conversation id) | `get_channel_messages` for the current channel only |
-| Group chat | `group` | the group chat | none |
+| Channel thread | `channel` | the channel thread (`team_id`, `channel_id`, thread conversation id) | with the asking member's tokens: `get_channel_messages` and `list_channel_members` for the current channel only; file reads in the channel's folder, the team's site and the company library only; people, free/busy and `propose_meeting`; GitHub tools |
+| Group or meeting chat | `group` | the chat | with the asking member's token: file reads, only from a library everyone in the chat can open (`everyoneCanRead` in `packages/tools/microsoft/onedrive/group-access.ts`) |
 
 - Session identity: `tenant_id`, `user_id` (personal only), `conversation_id`, `session_id`.
-- A channel session is never an employee's private session. Anything a shared session can read is already visible to its members, so another member cannot pull one user's private files through the shared context.
+- A channel session is never an employee's private session. A shared session reads only what its members can see too (the channel, its files and team site, the company library, directory names, free/busy times, the company's GitHub repositories), so another member cannot pull one user's OneDrive, mail or other channels through the shared context. The allowed tools are in `packages/auth/permissions/policy.ts`; the file tools check the library of every file and folder (`sharedAccess` in `packages/tools/microsoft/onedrive/index.ts`).
+- Approval cards also appear in channel threads. Only the person who asked can apply or cancel (`ProposalService`); anyone else who presses a button gets a message only they see, and the card stays.
 - In shared sessions each message is prefixed with the sender's name so Pi can tell speakers apart.
 - `/new` archives the active session; the next message creates a new one with a new Pi session file. Teams cannot clear the chat, so a **New conversation** card marks the boundary.
 - Each session stores a `title` (the start of its first message) and `last_message_at`.
@@ -109,17 +110,24 @@ All Microsoft 365 tools are Graph calls with the requesting user's delegated tok
 | `list_accessible_teams()` | `GET /me/joinedTeams` |
 | `list_channels(team_id)` | `GET /teams/{t}/channels` |
 | `get_channel_messages(team_id, channel_id, limit?, since?)` | `GET /teams/{t}/channels/{c}/messages?$expand=replies` |
+| `list_channel_members(team_id, channel_id)` | `GET /teams/{t}/channels/{c}/members` |
+| `find_people(name)` | `GET /users?$filter=startswith(...)` on name and mail |
+| `get_free_busy(people[], start, end, time_zone?)` | `POST /me/calendar/getSchedule` with `Prefer: outlook.timezone`; only status and times are returned, never subjects |
+| `propose_meeting(subject, start, end, attendees[], ...)` | reads only the user's time zone (`GET /me/mailboxSettings/timeZone`) |
 | `search_mail(query?, since?, limit?)` | `GET /me/messages` with `$search` (query), or `$filter` + `$orderby` on `receivedDateTime` |
 | `read_mail(message_id)` | `GET /me/messages/{id}`; HTML body converted to text, attachments not read |
 | `list_mail_folders(parent_folder_id?)` | `GET /me/mailFolders` or `/me/mailFolders/{id}/childFolders` |
 | `get_auto_reply()` | `GET /me/mailboxSettings/automaticRepliesSetting` |
 | `propose_mail_changes(changes[])` | reads only: checks messages (`GET /me/messages/{id}`, drafts must be drafts) and folders (`GET /me/mailFolders/{id}`; the target must not be Deleted Items or any folder inside it, checked up the parent chain) |
 
+A meeting is created after approval by `applyMeeting` (`packages/tools/microsoft/calendar/index.ts`): `POST /me/events` with the attendees and, unless turned off, a Teams meeting link. Outlook sends the invitations.
+
 Mail changes are applied after approval by `applyMailChanges` (`packages/tools/microsoft/outlook/changes.ts`): `send_mail` (`POST /me/sendMail`), `create_draft` (`POST /me/messages`), `send_draft` (`POST .../send`), `reply` (`.../reply` or `.../replyAll`), `forward`, `update_message` (`PATCH /me/messages/{id}`, `POST .../move`), `create_folder`, `rename_folder` (`/me/mailFolders`), `set_auto_reply` (`PATCH /me/mailboxSettings`). Mail bodies are sent as plain text; reply, forward and automatic reply texts are HTML-escaped. There is no delete.
 
 File changes are applied after approval by `applyFileChanges` (`packages/tools/microsoft/onedrive/changes.ts`): `create_folder` (`POST .../children`, fails if the name is taken), `create_text_file` (`PUT .../{parent}:/{name}:/content`, fails if taken), `create_workbook` (same upload of an `.xlsx` built in memory by `xlsx-file.ts`: one sheet, optionally one table over all rows; no extra library), `replace_text_file` (`PUT .../content` with `If-Match`), `rename` and `move` (`PATCH /drives/{d}/items/{i}`), `copy` (`POST .../copy`, runs in the background), `delete` (`DELETE` with `If-Match`; to the recycle bin), `update_cells` (`PATCH .../worksheets/{s}/range(address='…')`, after reading the cells again: if their values differ from those seen when proposing, the change fails), `add_table_rows` (`POST .../workbook/tables/{t}/rows`). A change may go into a folder that an earlier change in the same proposal creates (given as a library path); that folder is looked up by path when applied. With `If-Match`, a file changed after the proposal is not overwritten or deleted (412). Only text and new `.xlsx` files are uploaded; sharing is never changed.
 
 Notes:
+- In a channel thread, file tools allow only three libraries: the channel's folder (`GET /teams/{t}/channels/{c}/filesFolder`), the team's site (`GET /groups/{t}/drive`) and the company library. Search adds `path:"…"` for them to the query and drops any other hit; reads and listings refuse other drive ids, and `"root"` (OneDrive). Drive ids are cached per process; every read still uses the user's token.
 - `file_id` is `driveId:itemId`, so the same tools cover OneDrive and SharePoint libraries (there is no separate `sharepoint` package). Folders can also be paths such as `/Development/Meetings` in the library of `microsoft.companySite`: the site's drive id is looked up once (`GET /sites/{host}:{path}`, then `/sites/{id}/drive`), and every item is still read with the user's own token.
 - Tools show each `web_url` as a short id (`src:1a2b3c4d`), so the model does not spend 100+ tokens writing out each Outlook or SharePoint link. The id map is kept in the tool result in the Pi session; answers (streamed, final, and in the Threads tab) and tool arguments get the real links back (`packages/tools/links.ts`).
 - Mail tools use `/me/messages`, so they reach only the signed-in user's own mailbox. They are allowed in 1:1 chats only.

@@ -1,6 +1,6 @@
 # GitHub todo list setup
 
-Optional. Turns on the GitHub todo list in 1:1 chats, used with each employee's own GitHub account. What employees can do: [usage](../usage/github-todo.md).
+Optional. Turns on the GitHub todo list in 1:1 chats and channels, used with each employee's own GitHub account. What employees can do: [usage](../usage/github-todo.md).
 
 Do the [Microsoft Teams setup](microsoft-teams.md) first.
 

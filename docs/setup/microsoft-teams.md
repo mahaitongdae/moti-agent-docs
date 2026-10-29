@@ -40,6 +40,8 @@ Add a permission → **Microsoft Graph** → **Delegated permissions**:
 - `Files.ReadWrite.All`, `Sites.Read.All`
 - `Team.ReadBasic.All`, `Channel.ReadBasic.All`, `ChannelMessage.Read.All`
 - `Mail.ReadWrite`, `Mail.Send`, `MailboxSettings.ReadWrite`
+- `Calendars.ReadWrite`, `User.ReadBasic.All`, `ChannelMember.Read.All`
+- `ChatMember.Read`, `GroupMember.Read.All`
 
 Then click **Grant admin consent for \<tenant\>**. Do not add any application permissions.
 
@@ -71,7 +73,7 @@ Settings → Configuration → **Add OAuth Connection Settings**:
 | Client secret | the client secret value |
 | Token Exchange URL | `api://<HOST>/botid-<CLIENT_ID>`, exactly as the Application ID URI |
 | Tenant ID | `<TENANT_ID>` |
-| Scopes | `User.Read Files.ReadWrite.All Sites.Read.All Team.ReadBasic.All Channel.ReadBasic.All ChannelMessage.Read.All Mail.ReadWrite Mail.Send MailboxSettings.ReadWrite offline_access openid profile` (space separated) |
+| Scopes | `User.Read Files.ReadWrite.All Sites.Read.All Team.ReadBasic.All Channel.ReadBasic.All ChannelMessage.Read.All Mail.ReadWrite Mail.Send MailboxSettings.ReadWrite Calendars.ReadWrite User.ReadBasic.All ChannelMember.Read.All ChatMember.Read GroupMember.Read.All offline_access openid profile` (space separated) |
 
 Save, open the connection again, and click **Test Connection**. It must end with a token. Do not share or paste that token anywhere.
 
@@ -156,7 +158,9 @@ Then start the agent: [deployment.md](deployment.md) for a server, [local-debugg
 | Files | step 1 API permissions `Files.ReadWrite.All`, `Sites.Read.All` and Expose an API (silent sign-in); step 2 OAuth connection `graph` with those scopes. With `Files.Read.All` instead, reading works and every file change fails. Users sign in again after the scope changes. |
 | Company folders | step 4 `microsoft.companySite`: the SharePoint site whose document library holds the folders in `skills/company-files/SKILL.md` ([skills](skills.md)). Without it, file changes work only with folders found by search or listing. File changes and paths are not yet verified live. |
 | Threads tab | step 1 Expose an API with `<HOST>` in the Application ID URI and both Teams client applications; step 3 package built with the same `<HOST>`; `.env` `PUBLIC_HOSTNAME`. Sign-in for the tab's tool calls comes from the chat (step 2). The token setup was verified live with the History tab (version 0.3.0); the Threads page itself is not yet verified live. |
-| Channel summaries | step 1 API permissions `Team.ReadBasic.All`, `Channel.ReadBasic.All`, `ChannelMessage.Read.All`; step 2 OAuth connection `graph` with those scopes; app added to each team where people `@mention` it |
+| Channels | step 1 API permissions `Team.ReadBasic.All`, `Channel.ReadBasic.All`, `ChannelMessage.Read.All`, and `ChannelMember.Read.All` (channel members for meeting invites); step 2 OAuth connection `graph` with those scopes; app added to each team where people `@mention` it; for a private or shared channel, also add it to that channel. In a channel thread the assistant reads only that channel, files in the channel's folder, the team's SharePoint site and the company library (`microsoft.companySite`), and uses GitHub if it is set up. Private channels, channel files and channel members: not yet verified live. |
+| Group chats | step 1 API permissions `ChatMember.Read` (who is in the chat) and `GroupMember.Read.All` (who is in a team), plus the Files permissions; step 2 OAuth connection `graph` with those scopes. In a group or meeting chat the assistant reads a file only if everyone in the chat can open its library: the company library when everyone is an employee of this tenant (no guests), or a team's site when everyone in the chat is a member of that team. Not yet verified live. |
+| Meetings | step 1 API permissions `Calendars.ReadWrite` (free/busy, new meetings), `User.ReadBasic.All` (find people), `MailboxSettings.ReadWrite` (the user's time zone); step 2 OAuth connection `graph` with those scopes. In 1:1 chats and channels; every meeting waits for the asking user's Apply. Not yet verified live. |
 | Mail | step 1 API permissions `Mail.ReadWrite` (read, drafts, flags, folders), `Mail.Send` (send, reply, forward), `MailboxSettings.ReadWrite` (automatic replies); step 2 OAuth connection `graph` with those scopes. Each user's own mailbox only, in 1:1 chats; every change waits for the user's Apply. Leave out `Mail.Send` or `MailboxSettings.ReadWrite` to turn that part off. |
 
 Turning off a part means removing its permissions and scopes; the assistant then answers that sign-in or access is missing.
