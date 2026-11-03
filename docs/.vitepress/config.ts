@@ -1,7 +1,7 @@
 import { defineConfig } from "vitepress";
 
 export default defineConfig({
-  title: "Moti Agent",
+  title: "Springphy Agent",
   description: "Self-hosted Microsoft Teams assistant powered by Pi",
   base: "/moti-agent-docs/",
   cleanUrls: true,
@@ -10,6 +10,7 @@ export default defineConfig({
     logo: "/logo.svg",
     nav: [
       { text: "Setup", link: "/setup/microsoft-teams" },
+      { text: "Getting started", link: "/usage/getting-started" },
       { text: "Usage", link: "/usage/microsoft-teams" },
       { text: "Reference", link: "/reference/architecture" },
     ],
@@ -29,6 +30,7 @@ export default defineConfig({
       {
         text: "Usage",
         items: [
+          { text: "Getting started", link: "/usage/getting-started" },
           { text: "Microsoft Teams", link: "/usage/microsoft-teams" },
           { text: "GitHub todo list", link: "/usage/github-todo" },
           { text: "Company skills", link: "/usage/skills" },

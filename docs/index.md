@@ -2,14 +2,17 @@
 layout: home
 
 hero:
-  name: Moti Agent
+  name: Springphy Agent
   text: Your AI assistant in Microsoft Teams
-  tagline: Self-hosted, powered by Pi. It works with each employee's own Microsoft 365 permissions and never writes to Microsoft 365.
+  tagline: Self-hosted, powered by Pi. It works with each employee's own Microsoft 365 permissions and changes files, mail or meetings only when you ask.
   image:
     src: /logo.svg
-    alt: Moti Agent
+    alt: Springphy Agent
   actions:
     - theme: brand
+      text: Getting started
+      link: /usage/getting-started
+    - theme: alt
       text: Setup
       link: /setup/microsoft-teams
     - theme: alt
@@ -36,6 +39,10 @@ features:
     title: Outlook mail
     details: Find, summarize, and answer your own mail in a 1:1 chat. Every send or change waits for your Apply.
     link: /usage/microsoft-teams#mail
+  - icon: ⏰
+    title: Scheduled questions
+    link: /usage/microsoft-teams#scheduled-questions
+    details: A morning summary of your mail, meetings and todos, every day or every weekday, in your 1:1 chat. It only reads.
   - icon: ✅
     title: GitHub todo list
     link: /usage/github-todo

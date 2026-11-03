@@ -1,38 +1,21 @@
 # Microsoft Teams
 
-Talk to the assistant in a 1:1 chat or `@mention` it in a channel. It answers questions, searches and summarizes OneDrive and SharePoint files, reads and handles your Outlook mail, and summarizes Teams channels. It uses your own sign-in, so it only reaches files, mail, and channels you can open yourself. It never changes sharing and never posts in Teams. File and mail changes happen only after you press **Apply**.
+The assistant works with your files, mail, meetings and Teams channels. It uses your own sign-in, so it reaches only what you can open yourself. It never changes who a file is shared with and never posts in Teams. Changes wait for **Apply** unless you chose otherwise; see [How changes run](getting-started.md#how-changes-run).
 
-## Where to talk to it
+New here? Start with [Getting started](getting-started.md).
 
-| Where | Can do |
-|---|---|
-| 1:1 chat | everything: questions, your files, your mail, meetings, any team and channel you belong to |
-| Channel (`@mention`) | questions, that channel's messages and members, files in that channel, its team's SharePoint site and the company library, meetings, GitHub todos |
-| Group or meeting chat (`@mention`) | questions, and files everyone in the chat can open |
-
-Open the app in Teams (Apps → **Built for your org**, or the pinned icon) and send a message. When you first add the app, or send `/help`, it shows a card with what it can do and example questions you can press.
-
-In a 1:1 chat the answer streams in while it is written. Above it you see notes such as "Search files…", and Teams shows a **Stop** button. In channels the answer is one message that grows. Answers are marked as AI generated and have 👍 / 👎 buttons. Only which button you pressed is kept, not the comment you type.
-
-The conversation keeps its context until you start a new one.
-
-<Screenshot caption="A 1:1 chat with the assistant" />
-
-In a channel, each thread is its own conversation, shared by everyone in the thread.
-
-In a private or shared channel, someone must first add the app to that channel itself; adding it to the team is not enough there.
-
-Everyone in a channel thread sees the answers. So there it never reads your OneDrive, your mail, or other channels. It still uses your own sign-in, so it only reaches what you can open yourself. When it proposes a change there, only you can press **Apply**; if someone else presses it, only they see a note and the card stays.
-
-## First use: sign in
-
-The first time you ask about files, mail, or channels in a 1:1 chat, Teams signs you in silently. If that does not work, the assistant sends a sign-in card. Press **Sign in**, then ask again. If you `@mention` it in a channel before signing in, it asks you to message it directly first.
-
-<Screenshot caption="Microsoft 365 sign-in card" />
+| Can do | 1:1 chat | Channel (`@mention`) | Group or meeting chat (`@mention`) |
+|---|---|---|---|
+| [Files](#files) | your OneDrive and any SharePoint site you can open | the channel's files, its team's site, the company library | files everyone in the chat can open |
+| [Mail](#mail) | your mailbox | no | no |
+| [Meetings](#meetings) | your calendar | meetings everyone in the channel is invited to | meetings everyone in the chat is invited to |
+| [Conversations](#channel-and-chat-conversations) | any team and channel you belong to | this channel | this chat |
+| [GitHub todos](github-todo.md) | yes | yes | yes |
+| [Scheduled questions](#scheduled-questions) | yes | no | no |
 
 ## Files
 
-Ask in a 1:1 chat:
+### Read
 
 ```
 Find the latest sales report in OneDrive and summarize it
@@ -40,16 +23,14 @@ What is in the Contracts folder on the Legal SharePoint site?
 Who last changed budget-2026.xlsx, and when?
 ```
 
-Answers link to the files they used.
-
-In a channel, `@mention` it to read the channel's files, its team's SharePoint site, and the company library:
+In a channel:
 
 ```
-@Moti Agent What files are in this channel?
-@Moti Agent Summarize the project plan on our team site
+@Springphy Agent What files are in this channel?
+@Springphy Agent Summarize the project plan on our team site
 ```
 
-In a group or meeting chat, it reads a file only if everyone in the chat can open it: the company library when everyone is from your company (no guests), or a team's site when everyone in the chat is in that team. Anything else, such as your own OneDrive, it does not read there.
+Answers link to the files they used. In a group or meeting chat it reads a file only if everyone in the chat can open it: the company library when everyone is from your company (no guests), or a team's site when everyone in the chat is in that team.
 
 <Screenshot caption="File search and summary in a 1:1 chat" />
 
@@ -63,7 +44,7 @@ In a group or meeting chat, it reads a file only if everyone in the chat can ope
 
 Files over 20 MB are not read.
 
-It can also change files:
+### Change
 
 ```
 Write today's meeting notes into Development
@@ -81,15 +62,19 @@ Rename the budget draft to 2026-11-01 Budget.md
 | Excel (`.xlsx`) | create (one sheet, optionally as a table), change cells, add rows to a table; everything else in the file stays as it is |
 | Any file or folder | rename, move, copy, delete (to the recycle bin) |
 
-Nothing happens right away. You get a card with every change, including the text it will write (long texts show the first part). Press **Apply** to run them, or **Cancel**. The card expires after 30 minutes. If someone changes a file after the card was made, replacing or deleting that file, or changing those Excel cells, fails instead of overwriting their work.
+<Screenshot src="/images/usage/microsoft-teams-01-chat.png" caption="A file change waiting for Apply, then done" />
 
-It cannot edit Word or PowerPoint content, or change who a file is shared with. It moves files only within the same OneDrive or SharePoint library; to another place it copies.
+The card shows every change, including the text it will write (long texts show the first part). It expires after 30 minutes. If someone changes a file after the card was made, replacing or deleting that file, or changing those Excel cells, fails instead of overwriting their work.
 
-It follows the company's rules for where files go, how to name them, and how to write them. Ask "where should the design review go?" to hear them.
+It cannot edit Word or PowerPoint content. It moves files only within the same OneDrive or SharePoint library; to another place it copies.
+
+It follows the company's rules for where files go, how to name them, and how to write them. Ask "where should the design review go?" to hear them. See [Company skills](skills.md).
 
 ## Mail
 
-Ask in a 1:1 chat:
+Only in a 1:1 chat, and only your own mailbox.
+
+### Read
 
 ```
 What did Anna send me about the budget?
@@ -97,9 +82,9 @@ Summarize my unread mail from today
 Find the mail with the signed offer and tell me the start date
 ```
 
-It reads only your own mailbox, and only in a 1:1 chat, never in a channel or group chat. Answers link to the mails they used. It reads the text of a mail, not its attachments.
+Answers link to the mails they used. It reads the text of a mail, not its attachments.
 
-It can also change your mail:
+### Change
 
 ```
 Reply to Anna: thanks, Thursday works for me
@@ -117,31 +102,51 @@ I am out of office Nov 3 to Nov 7, tell people to contact Ben
 | Folders | create, rename |
 | Automatic replies | turn on (now or for a time window) or off, with the text to send |
 
-Nothing happens right away. You get a card with every change, including the full text of each mail. Press **Apply** to run them, or **Cancel**. The card expires after 30 minutes. It cannot delete mail, move mail to Deleted Items or a folder inside it, or add attachments. To move mail into a new folder, ask for the folder first, then for the move.
+The card shows the full text of each mail. It expires after 30 minutes.
+
+It cannot delete mail, move mail to Deleted Items or a folder inside it, or add attachments. To move mail into a new folder, ask for the folder first, then for the move.
 
 If it says it cannot access your mail, send `/signout microsoft`, then ask again and sign in.
 
 ## Meetings
 
-Ask in a 1:1 chat or `@mention` it in a channel:
+In a 1:1 chat, or `@mention` it in a channel, group chat or meeting chat:
 
 ```
 When are Anna and Ben free on Tuesday afternoon?
 Set up 30 minutes with everyone in this channel on Thursday about the release
 Book a meeting with Anna tomorrow at 10 in room Oslo, without a Teams link
+What meetings do I have tomorrow?
+Move my 1:1 with Ben to Friday at 14:00
+Add Carol to the release review and remove Dan
+Cancel Thursday's design review and tell everyone it moves to next week
+Decline the budget review and ask for Wednesday morning instead
 ```
 
-It looks up people by name, and in a channel it can invite the channel's members. It sees only when people are busy, not what their meetings are. Times are in your own Outlook time zone unless you name another.
-
-Nothing happens right away. You get a card with the meeting: title, time, who is invited. Press **Apply** to create it in your calendar and send the invitations, or **Cancel**. The meeting has a Teams link unless you ask for none. It cannot change or cancel existing meetings.
-
-## Channel summaries
-
-`@mention` the assistant in the channel you want summarized:
+In a meeting chat you can talk about "this meeting":
 
 ```
-@Moti Agent Summarize the major decisions in this channel this week
-@Moti Agent What is still open from yesterday's discussion?
+@Springphy Agent Move this meeting 30 minutes later
+@Springphy Agent When is everyone here free next week? Move this meeting there
+```
+
+- It looks up people by name. In a channel or group chat it can invite the members.
+- Free/busy shows only when people are busy, not what their meetings are.
+- Times are in your own Outlook time zone unless you name another.
+- You can move, cancel, or change who is invited only for meetings you organize. For other meetings you can accept, accept as tentative, or decline, and ask the organizer for another time.
+- For a repeating meeting, one occurrence changes at a time.
+- A new meeting has a Teams link unless you ask for none.
+- In a channel or group chat it shows and changes only meetings everyone there is invited to. In a meeting chat it also finds the chat's own meeting, showing only its title, time and organizer. For other meetings, ask in a 1:1 chat.
+
+The card shows the title, old and new time, and who is invited or removed. **Apply** makes the change and sends the invitations or updates.
+
+## Channel and chat conversations
+
+`@mention` it in the channel you want summarized:
+
+```
+@Springphy Agent Summarize the major decisions in this channel this week
+@Springphy Agent What is still open from yesterday's discussion?
 ```
 
 Or ask in a 1:1 chat about any team and channel you belong to:
@@ -151,57 +156,44 @@ Which teams am I in?
 Summarize the Engineering › Releases channel since Monday
 ```
 
+In a group or meeting chat, `@mention` it to summarize that chat. It reads only that chat, never your other chats or channels:
+
+```
+@Springphy Agent Summarize what we decided here today
+```
+
 Summaries call out decisions and action items.
 
 <Screenshot caption="Channel summary after an @mention" />
 
-## Threads
+### Using it in a channel
 
-The **Threads** tab is the first tab of the app: a chat page with all your 1:1 conversations with the assistant.
+- Add the app to the team first; see [Getting started, step 4](getting-started.md#_4-use-it-in-a-channel). For a private or shared channel, add it to that channel too.
+- Sign in from a 1:1 chat first. If you `@mention` it before signing in, it asks you to message it directly.
+- Each channel thread is its own conversation, shared by everyone in the thread.
+- Everyone in the thread sees the answer. So there it never reads your OneDrive, your mail, or other channels.
+- Only you can press **Apply** on a change you asked for. If someone else presses it, only they see a note and the card stays.
 
-- The list on the left shows your threads, newest first, grouped by day. The title is the start of the first message. Search by title.
-- **New thread** starts an empty one. Type and press Enter; Shift+Enter adds a line.
-- Answers appear as they are written, with tables, lists and code blocks. **Stop** (the square button) stops an answer.
-- Under an answer: copy, 👍 and 👎.
-- Proposed GitHub changes show **Apply** and **Cancel** right in the thread.
-- Type `/` for commands: `/new`, `/help`, `/stop`, `/model`, `/thinking`, `/signout microsoft`, `/signout github` (if used), `/signout all`.
-- The model name at the top opens a menu: the models your admin allows you, and, under **Thinking**, how much the model thinks before answering (when the model supports it). The choice applies to this thread. New threads start with what you chose last.
-- **⋯** next to a thread: **Rename**, **Continue in Chat** (the Teams chat then continues this thread), **Delete** (removes it from your list).
-- If you close the tab while an answer is written, it is still saved; open the thread again to see it.
+## Scheduled questions
 
-Sign-in happens in Chat. When a question in Threads needs your files, channels or GitHub and you are not signed in, the assistant sends a sign-in card to your **Chat** with it and the thread says so. Sign in there, then ask again in Threads.
+Ask it to answer a question for you every day or every weekday at a set time. Set one up in your 1:1 chat or in Threads:
 
-The **Chat** tab and Threads each have their own current conversation. Writing in Threads does not change what Chat continues, unless you choose **Continue in Chat**.
+```
+Every weekday at 8:00, summarize my unread mail, today's meetings and my GitHub todos
+Every day at 17:30, list mail I have not answered today
+What schedules do I have?
+Stop my morning summary
+```
 
-Only you see your threads. Channel and group chat conversations are not listed.
+- Times are in your own Outlook time zone, unless you name another (for example "8:00 Berlin time").
+- You can have up to 5.
+- Send `/schedules` to see them. To stop one, ask it to delete it.
+- Each answer comes as a message in your 1:1 chat, never in a channel or group chat. It also shows up in Threads as its own conversation, so you can ask follow-up questions there.
+- It never changes anything on its own. A scheduled answer only reads. If something needs a change, it says so; ask for it in the chat.
+- Scheduled answers count toward your usage limits, like any question.
 
-<Screenshot caption="Threads tab" />
+Sign-in: when you set one up, it checks that you are signed in (to Microsoft 365, and to GitHub if the question needs it). If not, it sends the sign-in card and saves nothing; sign in, then ask again. If your sign-in has run out by the time it is due, that answer is skipped: you get a short message and the sign-in card. The next one runs as planned.
 
-## New conversation in Chat
-
-`/new` starts a new conversation. Teams keeps the earlier messages on screen. A **New conversation** card marks where the new one starts; messages above it are no longer used. The card shows the title of the previous conversation; **Open in Threads** opens it there.
-
-## Commands
-
-| Command | Does |
-|---|---|
-| `/new` (or `/reset`) | start a new conversation; earlier context is no longer used |
-| `/cancel` (or `/stop`) | stop the answer that is being written |
-| `/model` | choose the model for this conversation (1:1 chat only; lists the models your admin allows you) |
-| `/thinking` | choose how much the model thinks before answering, for this conversation (1:1 chat only; the levels depend on the model). More thinking can help with hard questions but is slower and costs more |
-| `/signout` | disconnect an account. With GitHub in use, it asks which one; or send `/signout microsoft`, `/signout github` or `/signout all` |
-| `/help` | show what the assistant can do |
-
-## Messages you may see
-
-| Message | Meaning |
-|---|---|
-| You have reached the hourly request limit | wait and try again; the admin sets the limit |
-| You have reached your monthly usage limit | your share of model cost for this month is used up; it resets on the 1st (UTC), or ask your admin |
-| The assistant is busy right now | too many waiting messages; try again in a minute |
-| The request took too long and was stopped | ask a narrower question |
-| Your previous request was interrupted by a server restart | send it again |
-| Your access to this assistant is disabled | ask your admin |
-| Threads: Open Chat and send the assistant a message first | Threads works after you have added the app and opened its chat once |
+If the server is down at the planned time and comes back more than an hour later, that answer is skipped.
 
 Admins: see [Microsoft Teams setup](../setup/microsoft-teams.md) and [Agent settings](../setup/agent-settings.md).

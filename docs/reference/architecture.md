@@ -17,13 +17,14 @@ Microsoft Teams ──HTTPS──> Caddy ──> app (Node 24, TypeScript)
                                       ├─ Graph tools                         packages/tools/microsoft/{onedrive,teams,outlook}/
                                       ├─ GitHub tools (optional)             packages/tools/github/
                                       ├─ ProposalService (approve changes)   packages/agent/proposals.ts
+                                      ├─ Scheduler + ScheduleStore           packages/agent/schedules.ts, packages/tools/schedules/
                                       ├─ UserTokenService (per connection)   packages/auth/user-token.ts
                                       │    └─ GraphTokenService (+ identity)  packages/auth/entra/graph-token.ts
                                       └─ AuditLog                            packages/audit/
                                            │
              PostgreSQL <──────────────────┤  users, sessions, agent_runs, tool_invocations,
                                            │  oauth_connections, audit_events, usage_records, inbound_activities,
-                                           │  pending_actions
+                                           │  pending_actions, schedules
              /data/pi-sessions <───────────┘  Pi session files (JSONL transcripts)
 ```
 
@@ -33,7 +34,7 @@ Microsoft Teams ──HTTPS──> Caddy ──> app (Node 24, TypeScript)
 2. `AgentService.handleMessage` (fast path, inside the HTTP request):
    - resolves the sender: tenant must be in `microsoft.allowedTenantIds`, user must be `active`;
    - records the activity id; a repeated id is a duplicate delivery and is dropped;
-   - handles commands (`/new`, `/reset`, `/cancel`, `/stop`, `/signout`, `/help`);
+   - handles commands (`/new`, `/reset`, `/cancel`, `/stop`, `/model`, `/thinking`, `/mode`, `/schedules`, `/signout`, `/help`);
    - checks per-user limits, resolves the session, inserts an `agent_runs` row, enqueues the run, sends a typing indicator.
    The HTTP request then returns. Agent execution never depends on it.
 3. The `RunQueue` runs at most `limits.concurrentAnswers` runs at once and one run per session at a time.
@@ -48,11 +49,11 @@ Microsoft Teams ──HTTPS──> Caddy ──> app (Node 24, TypeScript)
 | Teams conversation | Session kind | Owner | Tools |
 |---|---|---|---|
 | 1:1 chat | `personal` | the user | all Graph tools, with the user's token; GitHub tools with the user's GitHub token |
-| Channel thread | `channel` | the channel thread (`team_id`, `channel_id`, thread conversation id) | with the asking member's tokens: `get_channel_messages` and `list_channel_members` for the current channel only; file reads in the channel's folder, the team's site and the company library only; people, free/busy and `propose_meeting`; GitHub tools |
-| Group or meeting chat | `group` | the chat | with the asking member's token: file reads, only from a library everyone in the chat can open (`everyoneCanRead` in `packages/tools/microsoft/onedrive/group-access.ts`) |
+| Channel thread | `channel` | the channel thread (`team_id`, `channel_id`, thread conversation id) | with the asking member's tokens: `get_channel_messages` and `list_channel_members` for the current channel only; file reads in the channel's folder, the team's site and the company library only; people, free/busy, meetings everyone in the channel is invited to (`list_events`, `propose_meeting`, `propose_meeting_changes`); GitHub tools |
+| Group or meeting chat | `group` | the chat | with the asking member's token: file reads, only from a library everyone in the chat can open (`everyoneCanRead` in `packages/tools/microsoft/onedrive/group-access.ts`); `list_chat_members`; people, free/busy, meetings everyone in the chat is invited to, and a meeting chat's own meeting (`viewer` in `packages/tools/microsoft/calendar/events.ts`) |
 
 - Session identity: `tenant_id`, `user_id` (personal only), `conversation_id`, `session_id`.
-- A channel session is never an employee's private session. A shared session reads only what its members can see too (the channel, its files and team site, the company library, directory names, free/busy times, the company's GitHub repositories), so another member cannot pull one user's OneDrive, mail or other channels through the shared context. The allowed tools are in `packages/auth/permissions/policy.ts`; the file tools check the library of every file and folder (`sharedAccess` in `packages/tools/microsoft/onedrive/index.ts`).
+- A channel session is never an employee's private session. A shared session reads only what its members can see too (the channel, its files and team site, the company library, directory names, free/busy times, meetings every member is invited to, the company's GitHub repositories), so another member cannot pull one user's OneDrive, mail or other channels through the shared context. The allowed tools are in `packages/auth/permissions/policy.ts`; the file tools check the library of every file and folder (`sharedAccess` in `packages/tools/microsoft/onedrive/index.ts`).
 - Approval cards also appear in channel threads. Only the person who asked can apply or cancel (`ProposalService`); anyone else who presses a button gets a message only they see, and the card stays.
 - In shared sessions each message is prefixed with the sender's name so Pi can tell speakers apart.
 - `/new` archives the active session; the next message creates a new one with a new Pi session file. Teams cannot clear the chat, so a **New conversation** card marks the boundary.
@@ -72,6 +73,18 @@ A personal tab in the Teams app (`staticTabs` entity `threads`, listed before th
 - Sign-in stays in the chat: when a tool needs a sign-in, the app sends the OAuth card into the user's 1:1 chat with the bot (`TeamsApp.sendSignInCard`: the same card `OAuthFlow.signIn` sends, built from the stored conversation, without an inbound activity). The SDK's sign-in invoke handlers finish it there. The tab gets a `signin` event. Sending is tried twice; if both fail, the answer says sign-in is not available, as in the chat.
 - A transcript is read from the Pi session file: user and assistant text only, no tool calls. Proposals of the session come from `pending_actions`.
 - Pi owns the transcript and context management (including compaction). The application owns ownership and access: the Pi file path is stored on the session row and never derived from user input.
+
+## Scheduled questions
+
+A user's own prompt, run every day or every weekday at a local time (`schedules` table, `packages/agent/schedules.ts`).
+
+- Set up, listed and deleted with `create_schedule`, `list_schedules` and `delete_schedule` (`packages/tools/schedules/`), which only `personal` sessions get. `/schedules` lists them without the model. At most 5 per user. Times are stored as `HH:MM` plus an IANA time zone; the default is the user's Outlook time zone when it is an IANA name, otherwise the model must pass one.
+- `create_schedule` first gets the user's Microsoft 365 token (and GitHub token when `uses_github` is set). A missing token fails the tool with the usual sign-in error, so the run sends the sign-in card and nothing is saved.
+- `Scheduler` looks for due rows once a minute, in the app process. Each due row is claimed with one conditional `UPDATE` that moves `next_run_at` to the next time, so a second tick or a restart does not run it twice. The run's activity id is `schedule:<id>:<due time>`, recorded in `inbound_activities` as a second guard. A run more than an hour late (server down) is skipped.
+- Before a run: the user must still exist and be `active` in an allowed tenant (`IdentityService.findExisting`), and have a 1:1 chat with the bot. Then the same token check as at setup runs (`AgentService.missingSignIn`). If a sign-in is missing, the model is not called: a short message and the sign-in card (`TeamsApp.sendSignInCard`, built without an inbound activity, as for the Threads tab) go to the 1:1 chat, and the schedule stays.
+- The run goes through `AgentService.startScheduledRun`: the usual limits, queue, audit and Pi run, in a new `personal` thread (`SessionService.createThread`, titled after the schedule) so it is listed in Threads. Its tool list has no `propose_*` and no schedule tools (`allowedToolNames(kind, readOnly)`), the change mode is ignored, and the system prompt says nobody is watching.
+- Only the final answer is sent, with `TeamsApp.notify`, into the owner's 1:1 chat. A sign-in needed by a tool during the run sends the card there too.
+- Audit: `schedule_created`, `schedule_deleted`, `schedule_started`, `schedule_skipped` (`late`, `sign_in`, `not_started`).
 
 ## Configuration
 
@@ -110,10 +123,14 @@ All Microsoft 365 tools are Graph calls with the requesting user's delegated tok
 | `list_accessible_teams()` | `GET /me/joinedTeams` |
 | `list_channels(team_id)` | `GET /teams/{t}/channels` |
 | `get_channel_messages(team_id, channel_id, limit?, since?)` | `GET /teams/{t}/channels/{c}/messages?$expand=replies` |
+| `get_chat_messages(limit?, since?)` | `GET /chats/{id}/messages?$orderby=createdDateTime desc` of the current group or meeting chat only (`Chat.Read`); Graph gives no message links, so it builds a Teams link from the chat and message ids |
 | `list_channel_members(team_id, channel_id)` | `GET /teams/{t}/channels/{c}/members` |
 | `find_people(name)` | `GET /users?$filter=startswith(...)` on name and mail |
 | `get_free_busy(people[], start, end, time_zone?)` | `POST /me/calendar/getSchedule` with `Prefer: outlook.timezone`; only status and times are returned, never subjects |
 | `propose_meeting(subject, start, end, attendees[], ...)` | reads only the user's time zone (`GET /me/mailboxSettings/timeZone`) |
+| `list_events(start, end, time_zone?, subject?)` | `GET /me/calendarView` with `Prefer: outlook.timezone`; the UTC window is widened by 14 hours, then cut to the local times. In a channel or group chat: only meetings whose organizer and attendees include every member's email address (`/chats/{id}/members`, `/teams/{t}/channels/{c}/members`, cached one minute); in a meeting chat also its own meeting (the join link names the chat's thread id), with subject, time and organizer only. No links in shared conversations |
+| `list_chat_members()` | `GET /chats/{id}/members` of the current group or meeting chat |
+| `propose_meeting_changes(changes[])` | reads only: `GET /me/events/{id}`, with the same check as `list_events` in shared conversations; move, attendees and cancel only as organizer, answers only as invitee; a series master cannot be moved |
 | `search_mail(query?, since?, limit?)` | `GET /me/messages` with `$search` (query), or `$filter` + `$orderby` on `receivedDateTime` |
 | `read_mail(message_id)` | `GET /me/messages/{id}`; HTML body converted to text, attachments not read |
 | `list_mail_folders(parent_folder_id?)` | `GET /me/mailFolders` or `/me/mailFolders/{id}/childFolders` |
@@ -121,6 +138,8 @@ All Microsoft 365 tools are Graph calls with the requesting user's delegated tok
 | `propose_mail_changes(changes[])` | reads only: checks messages (`GET /me/messages/{id}`, drafts must be drafts) and folders (`GET /me/mailFolders/{id}`; the target must not be Deleted Items or any folder inside it, checked up the parent chain) |
 
 A meeting is created after approval by `applyMeeting` (`packages/tools/microsoft/calendar/index.ts`): `POST /me/events` with the attendees and, unless turned off, a Teams meeting link. Outlook sends the invitations.
+
+Meeting changes are applied after approval by `applyMeetingChanges` (`packages/tools/microsoft/calendar/changes.ts`): `reschedule` (`PATCH /me/events/{id}` start and end), `update_attendees` (reads the attendees again, then `PATCH` the whole list, so answers given since the proposal are kept), `cancel` (`POST .../cancel`), `respond` (`POST .../accept`, `.../tentativelyAccept` or `.../decline`, with `proposedNewTime` for another time). Outlook sends the updates.
 
 Mail changes are applied after approval by `applyMailChanges` (`packages/tools/microsoft/outlook/changes.ts`): `send_mail` (`POST /me/sendMail`), `create_draft` (`POST /me/messages`), `send_draft` (`POST .../send`), `reply` (`.../reply` or `.../replyAll`), `forward`, `update_message` (`PATCH /me/messages/{id}`, `POST .../move`), `create_folder`, `rename_folder` (`/me/mailFolders`), `set_auto_reply` (`PATCH /me/mailboxSettings`). Mail bodies are sent as plain text; reply, forward and automatic reply texts are HTML-escaped. There is no delete.
 
@@ -151,6 +170,8 @@ Approval flow:
 1. The tool stores the checked change in `pending_actions` and the run sends an Adaptive Card with **Apply** / **Cancel** (`Action.Execute`).
 2. The press arrives as an `adaptiveCard/action` invoke. `AgentService.handleCardAction` resolves the user, claims the proposal, and replaces the card with "Applying…".
 3. Changes run in the background with the user's GitHub or Microsoft 365 token; the result is posted as a new message and stored on the row.
+
+With `/mode` **Apply without asking** (`users.change_mode = 'auto'`), a 1:1 run's `ProposalSink` stores, claims and applies each proposal inside the tool call, and the tool result is the outcome instead of a preview; no card is sent. The row is kept, so the Threads tab still lists it. Shared sessions ignore the setting.
 
 Not included: automatic updates without a user request (for example from GitHub webhooks). Those would need a credential that is not tied to one employee. Use the project's built-in workflows (auto-add, close → Done) instead.
 

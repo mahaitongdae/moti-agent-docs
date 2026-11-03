@@ -81,7 +81,7 @@ node --env-file=.env apps/teams-bot/src/main.ts
 
 ```bash
 PUBLIC_HOSTNAME=<tunnel host, without https://> \
-  infra/teams-app/package.sh moti-agent.zip
+  infra/teams-app/package.sh springphy-agent.zip
 ```
 
 Teams client → Apps → Manage your apps → **Upload a custom app**, then choose the zip. If the option is missing, turn on "Upload custom apps" in a Teams admin center setup policy.
@@ -91,7 +91,7 @@ Teams client → Apps → Manage your apps → **Upload a custom app**, then cho
 1. In a 1:1 chat with the bot, send `Hello, what can you do?`. Pi should reply.
 2. In the 1:1 chat, ask `Which teams am I in?`. The first time, Teams signs you in silently (SSO) or shows a sign-in card; then the bot lists your teams.
 3. In the 1:1 chat, ask `Find the latest ... report in OneDrive and summarize it`.
-4. Add the app to a team. In a channel, `@Moti Agent Summarize the major decisions in this channel this week`.
+4. Add the app to a team. In a channel, `@Springphy Agent Summarize the major decisions in this channel this week`.
 5. Open the **Threads** tab. The 1:1 conversation is listed; open it and ask a follow-up, then start a **New thread**. In a thread's **⋯** menu, **Continue in Chat** makes the chat continue it.
 5. Permission check with two accounts: put a file only user A can open, then have user B ask for it (also by explicit file id). B must not get it.
 
