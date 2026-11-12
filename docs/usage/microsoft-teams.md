@@ -70,6 +70,19 @@ It cannot edit Word or PowerPoint content. It moves files only within the same O
 
 It follows the company's rules for where files go, how to name them, and how to write them. Ask "where should the design review go?" to hear them. See [Company skills](skills.md).
 
+## Images
+
+Paste an image into your message in Chat, a group chat, or a channel, with or without a question:
+
+```
+What does this error mean?
+```
+
+- At most 5 images per message, 20 MB each.
+- The image stays in the conversation, so you can ask about it again, and each later answer in that conversation costs more. Use `/new` to start without it.
+- You cannot send images from the Threads tab yet. The agent cannot read images in older messages or in files.
+- If the model cannot read images, the agent tells you. In a 1:1 chat, choose another with `/model`.
+
 ## Mail
 
 Only in a 1:1 chat, and only your own mailbox.

@@ -71,7 +71,7 @@ A personal tab in the Teams app (`staticTabs` entity `threads`, listed before th
 - A thread is a `personal` session. Threads created in the tab belong to the user's 1:1 chat with the bot but are not its active session: the chat and the tab each keep their own current conversation. **Continue in Chat** makes a thread the chat's active session (one transaction; the unique active-session index holds) and posts a note in the chat. Installing the app creates the chat's session, so the tab works before the first message.
 - **Delete** sets `hidden_at`; the session and Pi file stay and follow the usual retention.
 - Sign-in stays in the chat: when a tool needs a sign-in, the app sends the OAuth card into the user's 1:1 chat with the bot (`TeamsApp.sendSignInCard`: the same card `OAuthFlow.signIn` sends, built from the stored conversation, without an inbound activity). The SDK's sign-in invoke handlers finish it there. The tab gets a `signin` event. Sending is tried twice; if both fail, the answer says sign-in is not available, as in the chat.
-- A transcript is read from the Pi session file: user and assistant text only, no tool calls. Proposals of the session come from `pending_actions`.
+- A transcript is read from the Pi session file: user and assistant text only, no tool calls; a message with an image shows `[Image]`. Proposals of the session come from `pending_actions`.
 - Pi owns the transcript and context management (including compaction). The application owns ownership and access: the Pi file path is stored on the session row and never derived from user input.
 
 ## Scheduled questions
